@@ -1,0 +1,16 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.ipynb_checkpoints
+*.Rproj
+*.duckdb
+*.wal
+*.vrt
+.streamlit
+__pycache__
+*.block
+*.tmp
+*.parquet
+*.geojson
+**/*.shp
