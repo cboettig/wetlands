@@ -12,7 +12,7 @@ duckdb_install_h3()
 
 con = ibis.duckdb.connect(extensions = ["spatial", "h3"])
 con.raw_sql("SET THREADS=100;")
-set_secrets(con)
+set_secrets(con, "", "", "minio.carlboettiger.info")
 
 pmtiles = "https://minio.carlboettiger.info/public-tpl/conservation_almanac/tpl.pmtiles"
 wetlands_z8_url = "https://minio.carlboettiger.info/public-tpl/conservation_almanac/z8/tpl_h3_z8.parquet"
