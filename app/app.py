@@ -47,7 +47,8 @@ from langchain_core.prompts import ChatPromptTemplate
 prompt = ChatPromptTemplate.from_messages([
     ("system", template),
     ("human", "{input}")
-]).partial(dialect="duckdb", wetlands = wetlands_z8.schema(),
+]).partial(dialect="duckdb", us_wetlands = us_wetlands_z8.schema(), 
+           global_wetlands = global_wetlands_z8.schema(),
            carbon = carbon_z8.schema(),
           svi = svi_z8.schema(), mobi = mobi_z8.schema())
 
