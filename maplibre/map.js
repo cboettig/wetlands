@@ -6,7 +6,7 @@ const map = new maplibregl.Map({
     zoom: 1.5
 });
 
-// Store dark style URL
+// Store style URLs
 const darkStyleUrl = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const datavizStyleUrl = 'https://api.maptiler.com/maps/dataviz-v4/style.json?key=0Vzl9yHwu0Xyx4TwT2Iw';
 
@@ -14,9 +14,13 @@ const datavizStyleUrl = 'https://api.maptiler.com/maps/dataviz-v4/style.json?key
 let wetlandColormap;
 let wetlandColormapData;
 
-fetch('wetland-colormap.json')
-    .then(response => response.json())
+const colormapPromise = fetch('wetland-colormap.json')
+    .then(response => {
+        console.log('Colormap fetch response:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Colormap data loaded:', Object.keys(data).length, 'classes');
         wetlandColormapData = data;
         // Extract just the color arrays for the tile service
         const colorArrays = {};
@@ -24,52 +28,61 @@ fetch('wetland-colormap.json')
             colorArrays[key] = value.color;
         }
         wetlandColormap = encodeURIComponent(JSON.stringify(colorArrays));
+        console.log('Colormap encoded, length:', wetlandColormap.length);
+        return wetlandColormap;
     })
-    .catch(error => console.error('Error loading colormap:', error));
+    .catch(error => {
+        console.error('Error loading colormap:', error);
+        throw error;
+    });
 
-// Wait for map to load before adding wetlands layer
+// Wait for both map and colormap to load before adding wetlands layer
 map.on('load', function () {
-    // Ensure colormap is loaded
-    if (!wetlandColormap) {
-        console.error('Colormap not loaded yet');
-        return;
-    }
+    console.log('Map loaded, waiting for colormap...');
+    colormapPromise.then(() => {
+        console.log('Colormap ready, adding wetlands layer...');
+        map.addSource('wetlands-cog', {
+            'type': 'raster',
+            'tiles': [
+                `https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=https://minio.carlboettiger.info/public-wetlands/GLWD_v2_0/GLWD_v2_0_combined_classes/GLWD_v2_0_main_class.tif&colormap=${wetlandColormap}`
+            ],
+            'tileSize': 256,
+            'minzoom': 0,
+            'maxzoom': 12
+        });
 
-    map.addSource('wetlands-cog', {
-        'type': 'raster',
-        'tiles': [
-            `https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}@2x.png?url=https://minio.carlboettiger.info/public-wetlands/GLWD_v2_0/GLWD_v2_0_combined_classes/GLWD_v2_0_main_class.tif&colormap=${wetlandColormap}`
-        ],
-        'tileSize': 512
-    });
-
-    map.addLayer({
-        'id': 'wetlands-layer',
-        'type': 'raster',
-        'source': 'wetlands-cog',
-        'paint': {
-            'raster-opacity': 0.7
-        }
-    });
-
-    // Set up wetlands layer toggle after layer is added
-    const wetlandsCheckbox = document.getElementById('wetlands-layer');
-    if (wetlandsCheckbox) {
-        wetlandsCheckbox.onclick = function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const visibility = map.getLayoutProperty('wetlands-layer', 'visibility');
-
-            if (visibility === 'visible' || !visibility) {
-                map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
-                this.checked = false;
-            } else {
-                this.checked = true;
-                map.setLayoutProperty('wetlands-layer', 'visibility', 'visible');
+        map.addLayer({
+            'id': 'wetlands-layer',
+            'type': 'raster',
+            'source': 'wetlands-cog',
+            'paint': {
+                'raster-opacity': 0.7
             }
-        };
-    }
+        });
+
+        console.log('Wetlands layer added successfully');
+
+        // Set up wetlands layer toggle after layer is added
+        const wetlandsCheckbox = document.getElementById('wetlands-layer');
+        if (wetlandsCheckbox) {
+            wetlandsCheckbox.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const visibility = map.getLayoutProperty('wetlands-layer', 'visibility');
+
+                if (visibility === 'visible' || !visibility) {
+                    map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
+                    this.checked = false;
+                } else {
+                    this.checked = true;
+                    map.setLayoutProperty('wetlands-layer', 'visibility', 'visible');
+                }
+            };
+        }
+    }).catch(error => {
+        console.error('Error adding wetlands layer:', error);
+    });
 });
 
 // Base layer switcher functionality
@@ -87,9 +100,11 @@ function switchBaseLayer(styleName) {
         map.addSource('wetlands-cog', {
             'type': 'raster',
             'tiles': [
-                `https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}@2x.png?url=https://minio.carlboettiger.info/public-wetlands/GLWD_v2_0/GLWD_v2_0_combined_classes/GLWD_v2_0_main_class.tif&colormap=${wetlandColormap}`
+                `https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=https://minio.carlboettiger.info/public-wetlands/GLWD_v2_0/GLWD_v2_0_combined_classes/GLWD_v2_0_main_class.tif&colormap=${wetlandColormap}`
             ],
-            'tileSize': 512
+            'tileSize': 256,
+            'minzoom': 0,
+            'maxzoom': 12
         });
 
         map.addLayer({
