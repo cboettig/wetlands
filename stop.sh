@@ -38,4 +38,32 @@ fi
 lsof -ti :8000 | xargs -r kill -9 2>/dev/null && echo "Force killed any process on port 8000"
 lsof -ti :8001 | xargs -r kill -9 2>/dev/null && echo "Force killed any process on port 8001"
 
+# Stop MCP proxy
+if [ -f .mcp_proxy.pid ]; then
+    PID=$(cat .mcp_proxy.pid)
+    if kill -0 $PID 2>/dev/null; then
+        kill $PID 2>/dev/null || kill -9 $PID 2>/dev/null
+        echo "Stopped MCP proxy (PID: $PID)"
+    else
+        echo "MCP proxy process not running (PID: $PID)"
+    fi
+    rm .mcp_proxy.pid
+fi
+
+# Stop LLM proxy
+if [ -f .llm_proxy.pid ]; then
+    PID=$(cat .llm_proxy.pid)
+    if kill -0 $PID 2>/dev/null; then
+        kill $PID 2>/dev/null || kill -9 $PID 2>/dev/null
+        echo "Stopped LLM proxy (PID: $PID)"
+    else
+        echo "LLM proxy process not running (PID: $PID)"
+    fi
+    rm .llm_proxy.pid
+fi
+
+# Extra: kill any lingering processes on ports 8010/8011
+lsof -ti :8010 | xargs -r kill -9 2>/dev/null && echo "Force killed any process on port 8010"
+lsof -ti :8011 | xargs -r kill -9 2>/dev/null && echo "Force killed any process on port 8011"
+
 echo "All services stopped"

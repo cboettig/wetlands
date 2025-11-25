@@ -25,25 +25,22 @@ app.add_middleware(
 
 # Get configuration from environment
 def get_llm_endpoint():
-    env_endpoint = os.getenv("LLM_ENDPOINT")
-    if env_endpoint:
-        return env_endpoint
-    # Try to read from mcp/config.json
-    try:
-        import json
-        with open("mcp/config.json") as f:
-            config = json.load(f)
-        endpoint = config.get("llm_endpoint", "https://api.openai.com/v1")
-        # Always construct endpoint as <base>/chat/completions
-        if endpoint.endswith("/"):
-            endpoint = endpoint[:-1]
-        endpoint = endpoint + "/chat/completions"
-        return endpoint
-    except Exception:
-        return "https://api.openai.com/v1/chat/completions"
+    endpoint = os.getenv("LLM_ENDPOINT")
+    if not endpoint:
+        try:
+            import json
+            with open("mcp/config.json") as f:
+                config = json.load(f)
+            endpoint = config.get("llm_endpoint", "https://api.openai.com/v1")
+        except Exception:
+            endpoint = "https://api.openai.com/v1"
+    # Always construct endpoint as <base>/chat/completions
+    endpoint = endpoint.rstrip("/")
+    endpoint = endpoint + "/chat/completions"
+    print(f"LLM_ENDPOINT set to: {endpoint}")
+    return endpoint
 
 LLM_ENDPOINT = get_llm_endpoint()
-print(f"LLM_ENDPOINT set to: {LLM_ENDPOINT}")
 LLM_API_KEY = os.getenv("NRP_API_KEY")
 PROXY_AUTH_TOKEN = os.getenv("PROXY_AUTH_TOKEN")  # New: required auth token
 
