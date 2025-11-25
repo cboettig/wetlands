@@ -16,13 +16,12 @@ con.raw_sql("SET THREADS=100;")
 set_secrets(con, "", "", "minio.carlboettiger.info")
 
 pmtiles = "https://minio.carlboettiger.info/public-tpl/conservation_almanac/tpl.pmtiles"
-wetlands_z8_url = "https://minio.carlboettiger.info/public-tpl/conservation_almanac/z8/tpl_h3_z8.parquet"
 mobi_z8_url = "https://minio.carlboettiger.info/public-mobi/hex/all-richness-h8.parquet"
 svi_z8_url = "https://minio.carlboettiger.info/public-social-vulnerability/2022/SVI2022_US_tract_h3_z8.parquet"
 carbon_z8_url = "https://minio.carlboettiger.info/public-carbon/hex/us-tracts-vuln-total-carbon-2018-h8.parquet"
 
 us_wetlands_z8 = con.read_parquet("s3://public-wetlands/hex/**", table_name = 'us_wetlands')
-# global_wetlands_z8 = con.read_parquet("s3://public-wetlands/hex/**", table_name = 'global_wetlands')
+global_wetlands_z8 = con.read_parquet("s3://public-wetlands/hex/**", table_name = 'global_wetlands')
 mobi_z8 = con.read_parquet(mobi_z8_url, table_name = 'mobi')
 svi_z8 = con.read_parquet(svi_z8_url,table_name = 'svi')
 carbon_z8 = con.read_parquet(carbon_z8_url, table_name = 'carbon')
