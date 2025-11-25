@@ -6,7 +6,6 @@ from datetime import time
 import openai
 import pandas as pd
 import traceback
-import openai 
 
 st.set_page_config(layout="wide",
                    page_title="Wetlands",
