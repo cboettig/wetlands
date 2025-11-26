@@ -6,7 +6,7 @@ metadata:
     # Enable CORS for this Ingress
     haproxy.org/cors-enable: "true"
     
-    # Allow requests from GitHub Pages site (including subpaths like /wetlands)
+    # Allow requests from any origin (wildcard works when credentials is false)
     haproxy.org/cors-allow-origin: "*"
     
     # Allow POST (for LLM requests), GET (for health checks), and OPTIONS (for preflight)
@@ -18,11 +18,15 @@ metadata:
     # Expose headers in responses
     haproxy.org/cors-expose-headers: "Content-Length,Content-Range"
     
-    # Allow credentials (cookies, etc)
-    haproxy.org/cors-allow-credentials: "true"
+    # Cannot use credentials with wildcard origin
+    haproxy.org/cors-allow-credentials: "false"
     
     # Cache preflight responses for 10 minutes
     haproxy.org/cors-max-age: "600"
+    
+    # Increase timeout for LLM requests (120 seconds)
+    haproxy.org/timeout-http-request: "120s"
+    haproxy.org/timeout-server: "120s"
 
 spec:
   ingressClassName: haproxy

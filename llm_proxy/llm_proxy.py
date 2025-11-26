@@ -83,7 +83,7 @@ async def proxy_chat(request: ChatRequest):
         payload["tool_choice"] = request.tool_choice
     
     # Make request to LLM
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
             response = await client.post(LLM_ENDPOINT, json=payload, headers=headers)
             response.raise_for_status()
@@ -107,7 +107,7 @@ async def proxy_llm(request: Request):
     # Add API key
     headers["Authorization"] = f"Bearer {LLM_API_KEY}"
     
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
             resp = await client.post(LLM_ENDPOINT, content=body, headers=headers)
             return Response(

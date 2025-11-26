@@ -22,16 +22,18 @@ The `h8` column uses the H3 hierarchical geospatial indexing system (https://h3g
 - Hexagons tile the Earth's surface with minimal overlap/gaps
 
 **Area Calculations**:
+**CRITICAL**: The parquet files contain duplicate records for each hexagon (some hexagons appear 50+ times). You **MUST** use `COUNT(DISTINCT h8)` to get accurate hexagon counts.
+
 To calculate wetland areas from hexagon counts:
 ```sql
--- Area in hectares
-SELECT COUNT(*) * 73.7327598 as area_hectares FROM ...
+-- Area in hectares (MUST use DISTINCT!)
+SELECT COUNT(DISTINCT h8) * 73.7327598 as area_hectares FROM ...
 
--- Area in square kilometers
-SELECT COUNT(*) * 0.737327598 as area_km2 FROM ...
+-- Area in square kilometers (MUST use DISTINCT!)
+SELECT COUNT(DISTINCT h8) * 0.737327598 as area_km2 FROM ...
 
--- Area in square miles
-SELECT COUNT(*) * 0.284679 as area_sq_miles FROM ...
+-- Area in square miles (MUST use DISTINCT!)
+SELECT COUNT(DISTINCT h8) * 0.284679 as area_sq_miles FROM ...
 ```
 
 **Required S3 Secret Setup**:
@@ -108,7 +110,7 @@ CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'minio.carlboettiger.info', URL_S
 
 SELECT 
     Z as wetland_code,
-    COUNT(*) as hexagon_count
+    COUNT(DISTINCT h8) as hexagon_count
 FROM read_parquet('s3://public-wetlands/hex/**')
 GROUP BY Z
 ORDER BY hexagon_count DESC;
@@ -135,7 +137,7 @@ CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'minio.carlboettiger.info', URL_S
 
 SELECT 
     w.Z as wetland_type,
-    COUNT(*) as count,
+    COUNT(DISTINCT w.h8) as count,
     AVG(s.richness) as avg_species_richness
 FROM read_parquet('s3://public-wetlands/hex/**') w
 LEFT JOIN read_parquet('https://minio.carlboettiger.info/public-mobi/hex/all-richness-h8.parquet') s
@@ -159,11 +161,12 @@ ORDER BY avg_species_richness DESC;
 
 When answering questions about wetlands data:
 1. **Always include the S3 secret setup** in your queries
-2. **Always calculate and report areas** - Convert hexagon counts to hectares or km² using:
-   - Hectares: `COUNT(*) * 73.7327598`
-   - Square kilometers: `COUNT(*) * 0.737327598`
-   - Square miles: `COUNT(*) * 0.284679`
-3. **Translate wetland codes** (Z values) to human-readable names using the classification table
-4. **Aggregate by category** for broader questions (e.g., "peatlands" = codes 24-31)
-5. **Join datasets** using the `h8` column as the key
-6. **Format responses** with both hexagon counts AND areas (e.g., "15,000 hexagons covering 1,105,991 hectares")
+2. **CRITICAL: Always use COUNT(DISTINCT h8)** - The data contains duplicates, so you must count distinct hexagons!
+3. **Always calculate and report areas** - Convert hexagon counts to hectares or km² using:
+   - Hectares: `COUNT(DISTINCT h8) * 73.7327598`
+   - Square kilometers: `COUNT(DISTINCT h8) * 0.737327598`
+   - Square miles: `COUNT(DISTINCT h8) * 0.284679`
+4. **Translate wetland codes** (Z values) to human-readable names using the classification table
+5. **Aggregate by category** for broader questions (e.g., "peatlands" = codes 24-31)
+6. **Join datasets** using the `h8` column as the key
+7. **Format responses** with both hexagon counts AND areas (e.g., "15,000 hexagons covering 1,105,991 hectares")

@@ -18,6 +18,16 @@ metadata:
     
     # 5. Optional: Cache the preflight check for 10 minutes to reduce traffic
     haproxy.org/cors-max-age: "600"
+    
+    # 6. CRITICAL: Timeout settings for long-running queries
+    # Server timeout: How long to wait for backend (MCP server) to respond
+    haproxy.org/timeout-server: "300s"  # 5 minutes for long DuckDB queries
+    
+    # Client timeout: How long to keep connection open to client
+    haproxy.org/timeout-client: "300s"  # 5 minutes
+    
+    # Tunnel timeout: For SSE connections (Server-Sent Events)
+    haproxy.org/timeout-tunnel: "3600s"  # 1 hour for long-lived SSE connections
 
 spec:
   ingressClassName: haproxy
