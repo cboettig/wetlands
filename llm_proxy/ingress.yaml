@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llm-proxy-ingress
+  annotations:
+    # Enable CORS for this Ingress
+    haproxy.org/cors-enable: "true"
+    
+    # Only allow requests from the GitHub Pages site
+    haproxy.org/cors-allow-origin: "https://boettiger-lab.github.io"
+    
+    # Allow POST (for LLM requests), GET (for health checks), and OPTIONS (for preflight)
+    haproxy.org/cors-allow-methods: "GET, POST, OPTIONS"
+    
+    # Allow necessary headers (removed Authorization since we're not using proxy auth token)
+    haproxy.org/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+    
+    # Expose headers in responses
+    haproxy.org/cors-expose-headers: "Content-Length,Content-Range"
+    
+    # Allow credentials (cookies, etc)
+    haproxy.org/cors-allow-credentials: "true"
+    
+    # Cache preflight responses for 10 minutes
+    haproxy.org/cors-max-age: "600"
+
+spec:
+  ingressClassName: haproxy
+  tls:
+    - hosts:
+        - llm-proxy.nrp-nautilus.io
+      # Uncomment and add secretName if managing your own certificates
+      # secretName: llm-proxy-tls
+  rules:
+    - host: llm-proxy.nrp-nautilus.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: llm-proxy
+                port:
+                  number: 8002

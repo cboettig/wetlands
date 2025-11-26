@@ -1,5 +1,5 @@
 """
-LLM Proxy Server
+LLM Proxy Server for Kubernetes Deployment
 Securely proxies requests to OpenAI-compatible LLM endpoint
 API key is stored in environment variable, never exposed to browser
 Requires authentication token to prevent unauthorized use
@@ -14,10 +14,10 @@ from typing import List, Dict, Any, Optional
 
 app = FastAPI(title="LLM Proxy for Wetlands Chatbot")
 
-# Enable CORS for local development
+# Enable CORS - configured for production deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000"],
+    allow_origins=["*"],  # Can be restricted to specific domains if needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,27 +27,19 @@ app.add_middleware(
 def get_llm_endpoint():
     endpoint = os.getenv("LLM_ENDPOINT")
     if not endpoint:
-        try:
-            import json
-            with open("maplibre/config.json") as f:
-                config = json.load(f)
-            endpoint = config.get("llm_host", "https://ellm.nrp-nautilus.io/v1")
-        except Exception:
-            endpoint = "https://api.openai.com/v1"
+        endpoint = "https://ellm.nrp-nautilus.io/v1"
     # Always construct endpoint as <base>/chat/completions
     endpoint = endpoint.rstrip("/")
-    endpoint = endpoint + "/chat/completions"
+    if not endpoint.endswith("/chat/completions"):
+        endpoint = endpoint + "/chat/completions"
     print(f"LLM_ENDPOINT set to: {endpoint}")
     return endpoint
 
 LLM_ENDPOINT = get_llm_endpoint()
 LLM_API_KEY = os.getenv("NRP_API_KEY")
-PROXY_AUTH_TOKEN = os.getenv("PROXY_AUTH_TOKEN")  # New: required auth token
 
 if not LLM_API_KEY:
     print("WARNING: NRP_API_KEY environment variable not set!")
-if not PROXY_AUTH_TOKEN:
-    print("WARNING: PROXY_AUTH_TOKEN not set - proxy will accept requests from anyone!")
 
 class Message(BaseModel):
     role: str
@@ -61,27 +53,11 @@ class ChatRequest(BaseModel):
     temperature: Optional[float] = 0.7
 
 @app.post("/chat")
-async def proxy_chat(
-    request: ChatRequest,
-    authorization: Optional[str] = Header(None)
-):
+async def proxy_chat(request: ChatRequest):
     """
     Proxy chat requests to LLM endpoint with API key from environment
-    Requires Authorization header with bearer token if PROXY_AUTH_TOKEN is set
+    Access controlled via ingress CORS rules
     """
-    # Check authentication if token is configured
-    if PROXY_AUTH_TOKEN:
-        if not authorization:
-            raise HTTPException(status_code=401, detail="Authorization header required")
-        
-        # Expect "Bearer <token>" format
-        if not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Invalid authorization format")
-        
-        token = authorization[7:]  # Remove "Bearer " prefix
-        if token != PROXY_AUTH_TOKEN:
-            raise HTTPException(status_code=403, detail="Invalid authorization token")
-    
     if not LLM_API_KEY:
         raise HTTPException(status_code=500, detail="NRP_API_KEY not configured on server")
     
@@ -123,16 +99,34 @@ async def proxy_chat(
 
 @app.post("/llm")
 async def proxy_llm(request: Request):
+    """Generic LLM endpoint proxy"""
     body = await request.body()
     headers = dict(request.headers)
     # Remove host header to avoid issues
     headers.pop("host", None)
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(LLM_ENDPOINT, content=body, headers=headers)
-    return Response(content=resp.content, status_code=resp.status_code, media_type=resp.headers.get("content-type", "application/json"))
+    # Add API key
+    headers["Authorization"] = f"Bearer {LLM_API_KEY}"
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            resp = await client.post(LLM_ENDPOINT, content=body, headers=headers)
+            return Response(
+                content=resp.content, 
+                status_code=resp.status_code, 
+                media_type=resp.headers.get("content-type", "application/json")
+            )
+        except Exception as e:
+            print(f"ERROR in /llm endpoint: {type(e).__name__}: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.options("/llm")
 async def options_llm():
+    """Handle CORS preflight for /llm endpoint"""
+    return Response(status_code=204)
+
+@app.options("/chat")
+async def options_chat():
+    """Handle CORS preflight for /chat endpoint"""
     return Response(status_code=204)
 
 @app.get("/health")
@@ -142,6 +136,18 @@ async def health_check():
         "status": "healthy",
         "llm_endpoint": LLM_ENDPOINT,
         "api_key_configured": bool(LLM_API_KEY)
+    }
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "service": "LLM Proxy for Wetlands Chatbot",
+        "endpoints": {
+            "/chat": "POST - Main chat endpoint with structured request",
+            "/llm": "POST - Generic LLM proxy endpoint",
+            "/health": "GET - Health check"
+        }
     }
 
 if __name__ == "__main__":

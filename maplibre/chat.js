@@ -6,31 +6,11 @@ class WetlandsChatbot {
         this.config = config;
         this.mcpServerUrl = config.mcp_server_url;
         this.llmEndpoint = config.llm_endpoint;
-        this.llmApiKey = null; // Will prompt user
         this.systemPrompt = null;
         this.messages = [];
 
         this.initializeUI();
         this.loadSystemPrompt();
-        this.promptForApiKey();
-    }
-
-    promptForApiKey() {
-        // Check if API key is in sessionStorage (cleared when tab closes)
-        this.llmApiKey = sessionStorage.getItem('nrp_api_key');
-
-        if (!this.llmApiKey) {
-            this.llmApiKey = prompt(
-                'Enter your NRP API key:\n\n' +
-                '(This will only be stored in your browser session and cleared when you close the tab)'
-            );
-
-            if (this.llmApiKey) {
-                sessionStorage.setItem('nrp_api_key', this.llmApiKey);
-            } else {
-                this.addMessage('system', 'API key not provided. Chat functionality will be limited.');
-            }
-        }
     }
 
     async loadSystemPrompt() {
@@ -153,12 +133,11 @@ class WetlandsChatbot {
             }
         ];
 
-        // Call the LLM directly with user's API key
+        // Call the LLM proxy (API key handled server-side)
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.llmApiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: this.config.llm_model || 'gpt-4',

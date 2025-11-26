@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-proxy
+  labels:
+    app: llm-proxy
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: llm-proxy
+  template:
+    metadata:
+      labels:
+        app: llm-proxy
+    spec:
+      containers:
+      - name: llm-proxy
+        image: astral/uv:python3.12-bookworm-slim
+        command: ["uvx", "--from", "fastapi", "--with", "uvicorn", "--with", "httpx", "--with", "pydantic", "uvicorn", "llm_proxy:app", "--host", "0.0.0.0", "--port", "8002"]
+        workingDir: /app
+        ports:
+        - containerPort: 8002
+        env:
+        - name: NRP_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-proxy-secrets
+              key: nrp-api-key
+        - name: LLM_ENDPOINT
+          value: "https://ellm.nrp-nautilus.io/v1"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        volumeMounts:
+        - name: app-code
+          mountPath: /app
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: app-code
+        configMap:
+          name: llm-proxy-code
