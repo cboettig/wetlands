@@ -26,11 +26,11 @@ spec:
         - containerPort: 8001
         resources:
           requests:
-            cpu: "1"
-            memory: "2Gi"
+            cpu: "2"
+            memory: "32Gi"
           limits:
-            cpu: "1"
-            memory: "2Gi"
+            cpu: "2"
+            memory: "32Gi"
         volumeMounts:
         - name: duckdb-data
           mountPath: /data

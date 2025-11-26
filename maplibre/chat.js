@@ -69,7 +69,7 @@ class WetlandsChatbot {
         });
 
         // Welcome message
-        this.addMessage('assistant', 'Hi! I can help you explore global wetlands data indexed by H3 hexagons (73.73 ha each). Try asking:\n\n• "How many hectares of peatlands are there?"\n• "What is the total area of freshwater wetlands?"\n• "Which wetlands have the highest biodiversity?"\n• "Compare coastal vs inland wetland areas"');
+        this.addMessage('assistant', 'Hi! I can help you explore global wetlands data (GLWDv2.0). Try asking:\n\n• "How many hectares of peatlands are there?"\n• "What is the total area of freshwater wetlands?"\n• "Which wetlands have the highest biodiversity?"\n• "Compare coastal vs inland wetland areas"');
     }
 
     toggleChat() {
@@ -84,12 +84,8 @@ class WetlandsChatbot {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${role}`;
 
-        // Simple markdown-like formatting
-        const formatted = content
-            .replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre><code>$2</code></pre>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            .replace(/\n/g, '<br>');
-
+        // Use marked.js for markdown rendering
+        const formatted = marked.parse(content);
         messageDiv.innerHTML = formatted;
         messagesDiv.appendChild(messageDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
