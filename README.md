@@ -12,44 +12,100 @@ license: apache-2.0
 
 # Wetlands Chatbot & Map Application
 
-## Local Development (with Proxies)
+## Quick Start (Default: Hosted MCP)
 
-To run the full application locally, including backend proxies for CORS and LLM/MCP integration:
+By default, the application uses the hosted Kubernetes MCP server and a local LLM proxy (for CORS).
 
-1. Clone the repository and install dependencies:
+1. Clone the repository:
    ```bash
    git clone https://github.com/boettiger-lab/wetlands.git
    cd wetlands
-   uv pip install -r requirements.txt
    ```
-2. Set your API key (required for LLM proxy):
+
+2. Set your API key (required for authentication):
    ```bash
    export NRP_API_KEY="your-api-key-here"
    ```
-3. Start all backend services (HTTP server, MCP server, MCP proxy, LLM proxy):
+
+3. Start the services:
    ```bash
    ./start.sh
    ```
-   - This will launch all services in the background and save their PIDs for easy cleanup.
-   - To stop all services, run:
+   - This launches:
+     - HTTP server (port 8000) - serves the frontend
+     - LLM proxy (port 8011) - local proxy for CORS handling
+   - Backend MCP service is hosted at `https://biodiversity-mcp.nrp-nautilus.io`
+
+4. Open [http://localhost:8000](http://localhost:8000) in your browser to use the app.
+
+5. To stop the services:
    ```bash
    ./stop.sh
    ```
-4. Open [http://localhost:8000](http://localhost:8000) in your browser to use the app.
+
+## Local Development (Full Stack with Local MCP)
+
+For development and testing with a local MCP server:
+
+1. Install dependencies:
+   ```bash
+   uv pip install -r requirements.txt
+   ```
+
+2. Set your API key:
+   ```bash
+   export NRP_API_KEY="your-api-key-here"
+   ```
+
+3. Start all services locally:
+   ```bash
+   ./start.sh --local-mcp
+   ```
+   - This launches all backend services locally:
+     - HTTP server (port 8000) - serves the frontend
+     - LLM proxy (port 8011) - proxy to LLM APIs
+     - MCP server (port 8001) - mcp-server-motherduck with SSE transport
+     - MCP proxy (port 8010) - CORS-enabled proxy to MCP server
+   - PIDs are saved for easy cleanup
+
+4. To stop all local services:
+   ```bash
+   ./stop.sh
+   ```
 
 ## Static Deployment (GitHub Pages)
 
-- The frontend (maplibre folder) can be deployed as a static site on GitHub Pages or similar static hosting.
-- **Limitations:** Without the backend proxies, browser requests to MCP/LLM endpoints may fail due to CORS restrictions.
-- For full chatbot functionality, use local deployment with proxies as described above.
+- The frontend (`maplibre` folder) can be deployed as a static site on GitHub Pages or similar static hosting.
+- Configure `maplibre/config.json` to point to the hosted backend services:
+  ```json
+  {
+    "mcp_server_url": "https://biodiversity-mcp.nrp-nautilus.io/sse",
+    "llm_endpoint": "https://llm-proxy.nrp-nautilus.io/chat",
+    "llm_host": "https://ellm.nrp-nautilus.io/v1",
+    "llm_model": "qwen3"
+  }
+  ```
+- Note: For local testing, use `http://localhost:8011/chat` for the LLM endpoint to avoid CORS issues.
 
 ## Configuration
-- Endpoints for MCP and LLM are set in `maplibre/config.json` and proxied via FastAPI apps in `app/mcp_proxy.py` and `app/llm_proxy.py`.
-- Local artifacts (logs, pid files, duck.db) are ignored via `.gitignore`.
+
+### Frontend Configuration
+- Endpoints are set in `maplibre/config.json`
+- **Local testing** (default): Uses local LLM proxy at `http://localhost:8011/chat` and hosted MCP
+- **GitHub Pages** (production): Uses hosted LLM proxy at `https://llm-proxy.nrp-nautilus.io/chat`
+- **Local MCP** (`--local-mcp`): Adds local MCP server at `http://localhost:8001`
+
+### Backend Services
+- **LLM Proxy**: Always runs locally for CORS (local testing) or on K8s (GitHub Pages)
+- **MCP Server**: Hosted by default, or local with `--local-mcp` flag
+- **MCP Proxy**: Only needed for local MCP server (handles SSE protocol)
 
 ## Troubleshooting
-- If you encounter CORS errors or 500/404 errors, ensure all backend proxies are running and endpoints are correctly set in `config.json`.
-- Use `./stop.sh` to clean up all services before restarting.
+
+- **CORS errors**: Ensure backend services are running and ingress CORS is properly configured
+- **Authentication errors**: Verify `NRP_API_KEY` is set correctly
+- **Connection errors**: Check that hosted services are accessible or use `--local` mode
+- Use `./stop.sh` to clean up all local services before restarting
 
 ---
 

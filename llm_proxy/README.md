@@ -1,6 +1,4 @@
-# LLM Proxy Kubernetes Deployment
-
-This directory contains the Kubernetes deployment configuration for the LLM proxy server that securely proxies requests to OpenAI-compatible LLM endpoints while keeping API keys server-side.
+# LLM Proxy
 
 ## Overview
 
@@ -10,6 +8,28 @@ The LLM proxy serves as a secure intermediary between the frontend chatbot appli
 - Handles CORS properly for cross-origin requests
 - Restricts access via ingress rules (only allows requests from https://boettiger-lab.github.io)
 - Supports OpenAI-compatible API endpoints
+
+## Deployment Options
+
+### Hosted (Default - Kubernetes)
+
+The application uses the hosted LLM proxy by default:
+- **URL**: `https://llm-proxy.nrp-nautilus.io/chat`
+- **Deployment**: Kubernetes cluster (see deployment files in this directory)
+- **CORS**: Configured to allow requests from `https://boettiger-lab.github.io`
+
+### Local Development
+
+For local testing, run:
+```bash
+./start.sh --local
+```
+
+This starts the LLM proxy locally at `http://localhost:8011/chat`.
+
+## Kubernetes Deployment
+
+This directory contains the Kubernetes deployment configuration for the hosted LLM proxy server.
 
 ## Files
 

@@ -49,7 +49,7 @@ class WetlandsChatbot {
         });
 
         // Welcome message
-        this.addMessage('assistant', 'Hi! I can help you explore global wetlands data (GLWDv2.0). Try asking:\n\n• "How many hectares of peatlands are there?"\n• "What is the total area of freshwater wetlands?"\n• "Which wetlands have the highest biodiversity?"\n• "Compare coastal vs inland wetland areas"');
+        this.addMessage('assistant', 'Hi! I can help you explore global wetlands data (GLWDv2.0). Try asking:\n\n • "How many hectares of peatlands are there?"\n • "What is the total area of freshwater wetlands?"\n • "Which wetlands have the highest biodiversity?"\n • "Compare coastal vs inland wetland areas"');
     }
 
     toggleChat() {
@@ -218,7 +218,7 @@ class WetlandsChatbot {
         // SSE Protocol Implementation (matching Python mcp_proxy.py)
         // Step 1: Connect to SSE endpoint to get session
         const sseUrl = this.mcpServerUrl; // https://biodiversity-mcp.nrp-nautilus.io/sse
-        
+
         return new Promise((resolve, reject) => {
             const eventSource = new EventSource(sseUrl);
             let sessionEndpoint = null;
@@ -250,7 +250,7 @@ class WetlandsChatbot {
                     // Step 3: POST the message to the session endpoint
                     const baseUrl = sseUrl.replace('/sse', '');
                     const postUrl = `${baseUrl}${sessionEndpoint}`;
-                    
+
                     try {
                         const response = await fetch(postUrl, {
                             method: 'POST',
@@ -263,7 +263,7 @@ class WetlandsChatbot {
                         if (!response.ok) {
                             throw new Error(`Failed to post message: ${response.statusText}`);
                         }
-                        
+
                         console.log('Message posted to session endpoint');
                     } catch (error) {
                         console.error('Error posting message:', error);
@@ -278,7 +278,7 @@ class WetlandsChatbot {
                 try {
                     const data = JSON.parse(event.data);
                     console.log('Received SSE message:', data);
-                    
+
                     // Check if this is the response to our request
                     if (data.id === message.id) {
                         responseReceived = true;
@@ -321,17 +321,33 @@ class WetlandsChatbot {
 // Initialize chatbot when config is loaded
 let chatbot;
 
-fetch('config.json')
-    .then(response => response.json())
+// Try loading local config first (for local testing), fall back to production config
+fetch('config.local.json')
+    .then(response => {
+        if (!response.ok) throw new Error('Local config not found');
+        return response.json();
+    })
     .then(config => {
+        console.log('Using local config for testing');
         chatbot = new WetlandsChatbot(config);
         console.log('Wetlands chatbot initialized');
     })
-    .catch(error => {
-        console.error('Failed to load chatbot config:', error);
-        // Initialize with default config so UI still appears
-        chatbot = new WetlandsChatbot({
-            mcp_server_url: 'http://localhost:8001/mcp',
-            llm_model: 'glm-v'
-        });
+    .catch(() => {
+        // Fall back to production config
+        fetch('config.json')
+            .then(response => response.json())
+            .then(config => {
+                console.log('Using production config');
+                chatbot = new WetlandsChatbot(config);
+                console.log('Wetlands chatbot initialized');
+            })
+            .catch(error => {
+                console.error('Failed to load chatbot config:', error);
+                // Initialize with default config so UI still appears
+                chatbot = new WetlandsChatbot({
+                    mcp_server_url: 'https://biodiversity-mcp.nrp-nautilus.io/sse',
+                    llm_endpoint: 'https://llm-proxy.nrp-nautilus.io/chat',
+                    llm_model: 'qwen3'
+                });
+            });
     });

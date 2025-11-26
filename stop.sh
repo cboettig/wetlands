@@ -66,4 +66,10 @@ fi
 lsof -ti :8010 | xargs -r kill -9 2>/dev/null && echo "Force killed any process on port 8010"
 lsof -ti :8011 | xargs -r kill -9 2>/dev/null && echo "Force killed any process on port 8011"
 
+# Clean up local config
+if [ -f maplibre/config.local.json ]; then
+    rm maplibre/config.local.json
+    echo "Removed local config file"
+fi
+
 echo "All services stopped"

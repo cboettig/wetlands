@@ -11,21 +11,30 @@ This directory contains configuration and deployment resources for the MotherDuc
 
 ## MCP Server Deployment
 
-### Local Development
+### Quick Start (Hosted MCP Server)
 
-**Start all services:**
+By default, the application uses the hosted MCP server:
+- **URL**: `https://biodiversity-mcp.nrp-nautilus.io/sse`
+- **Transport**: SSE (Server-Sent Events)
+- No local MCP setup required - just run `./start.sh` from the project root
+
+### Local MCP Development
+
+To run the MCP server locally for development:
+
+**Start all services with local MCP:**
 
 ```bash
-./start.sh --local
+./start.sh --local-mcp
 ```
 
 This starts:
 - HTTP server (port 8000) - serves the frontend
+- LLM proxy (port 8011) - proxy to LLM APIs (always needed for CORS)
 - MCP server (port 8001) - mcp-server-motherduck with SSE transport
-- MCP proxy (port 8010) - CORS-enabled proxy to MCP server (local development only)
-- LLM proxy (port 8011) - proxy to OpenAI/Anthropic APIs
+- MCP proxy (port 8010) - CORS-enabled proxy to MCP server
 
-**Why the proxy?** The MCP proxy is required for **local development only** to handle CORS (Cross-Origin Resource Sharing) restrictions. Web browsers block JavaScript from making requests to `localhost:8001` from a page served from `localhost:8000`. The proxy on port 8010 adds the necessary CORS headers. In production (Kubernetes), the ingress controller handles this, so no proxy is needed.
+**Why the MCP proxy?** The MCP proxy is required for **local MCP development only** to handle CORS (Cross-Origin Resource Sharing) restrictions. Web browsers block JavaScript from making requests to `localhost:8001` from a page served from `localhost:8000`. The proxy on port 8010 adds the necessary CORS headers. When using the hosted MCP server, the ingress controller handles CORS, so no local MCP proxy is needed.
 
 **Test the MCP server:**
 
@@ -64,23 +73,34 @@ The Kubernetes deployment does not require the proxy since the ingress controlle
 
 ## Architecture Notes
 
-### Local Development (with proxy)
+### Default (Hosted MCP, Local LLM Proxy)
 ```
 Browser → http://localhost:8000 (frontend)
-       → http://localhost:8010/mcp (proxy with CORS) 
-       → http://localhost:8001/sse (MCP server)
+       → http://localhost:8011/chat (local LLM proxy - for CORS)
+       → https://biodiversity-mcp.nrp-nautilus.io/sse (hosted MCP - ingress handles CORS)
 ```
 
-### Production/Kubernetes (no proxy needed)
+### Local MCP Development (--local-mcp flag)
 ```
-Browser → https://biodiversity-mcp.nrp-nautilus.io/sse (ingress with CORS)
-       → ClusterIP Service
-       → MCP Server Pod
+Browser → http://localhost:8000 (frontend)
+       → http://localhost:8011/chat (local LLM proxy - for CORS)
+       → http://localhost:8010/mcp (local MCP proxy - for CORS) 
+       → http://localhost:8001/sse (local MCP server)
 ```
 
-The proxy (`app/mcp_proxy.py`) serves two purposes in local development:
-1. **CORS handling** - Adds necessary headers for browser access
-2. **SSE protocol translation** - Manages the SSE session with the MCP server
+### Production/GitHub Pages (all hosted)
+```
+Browser → https://boettiger-lab.github.io/wetlands (frontend)
+       → https://llm-proxy.nrp-nautilus.io/chat (hosted LLM proxy)
+       → https://biodiversity-mcp.nrp-nautilus.io/sse (hosted MCP - ingress handles CORS)
+```
+
+**Key Points:**
+- **LLM Proxy**: Always needed locally for CORS when testing at `localhost:8000`
+- **MCP Proxy** (`app/mcp_proxy.py`): Only needed for local MCP development
+  1. **CORS handling** - Adds necessary headers for browser access
+  2. **SSE protocol translation** - Manages the SSE session with the MCP server
+- **Frontend SSE Implementation**: In production and default mode, `maplibre/chat.js` directly implements the SSE protocol to communicate with the remote MCP server
 
 ## Example SQL Usage
 

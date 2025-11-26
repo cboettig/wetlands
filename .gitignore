@@ -19,6 +19,7 @@ __pycache__
 
 # Secrets and local config
 .env
+config.local.json
 
 # Local runtime files
 *.log

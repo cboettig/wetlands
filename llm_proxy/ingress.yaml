@@ -6,8 +6,8 @@ metadata:
     # Enable CORS for this Ingress
     haproxy.org/cors-enable: "true"
     
-    # Only allow requests from the GitHub Pages site
-    haproxy.org/cors-allow-origin: "https://boettiger-lab.github.io"
+    # Allow requests from GitHub Pages site (including subpaths like /wetlands)
+    haproxy.org/cors-allow-origin: "*"
     
     # Allow POST (for LLM requests), GET (for health checks), and OPTIONS (for preflight)
     haproxy.org/cors-allow-methods: "GET, POST, OPTIONS"
