@@ -106,8 +106,8 @@ async def proxy_chat(
         payload["tools"] = request.tools
         payload["tool_choice"] = request.tool_choice
     
-    # Make request to LLM
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    # Make request to LLM with extended timeout (some models are very slow)
+    async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minutes timeout
         try:
             response = await client.post(LLM_ENDPOINT, json=payload, headers=headers)
             response.raise_for_status()
@@ -127,7 +127,7 @@ async def proxy_llm(request: Request):
     headers = dict(request.headers)
     # Remove host header to avoid issues
     headers.pop("host", None)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minutes timeout
         resp = await client.post(LLM_ENDPOINT, content=body, headers=headers)
     return Response(content=resp.content, status_code=resp.status_code, media_type=resp.headers.get("content-type", "application/json"))
 
