@@ -98,16 +98,15 @@ if [ "$USE_LOCAL" = true ]; then
         echo -e "${RED}ERROR: MCP proxy failed to start. See mcp_proxy.log for details.${NC}"
         exit 1
     fi
-fi
 
-# Start LLM proxy
-echo -e "${GREEN}Starting LLM proxy on port 8011...${NC}"
-nohup uvicorn app.llm_proxy:app --host 0.0.0.0 --port 8011 > llm_proxy.log 2>&1 &
-LLM_PROXY_PID=$!
-sleep 2
-if ! kill -0 $LLM_PROXY_PID 2>/dev/null; then
-    echo -e "${RED}ERROR: LLM proxy failed to start. See llm_proxy.log for details.${NC}"
-    exit 1
+    echo -e "${GREEN}Starting LLM proxy on port 8011...${NC}"
+    nohup uvicorn app.llm_proxy:app --host 0.0.0.0 --port 8011 > llm_proxy.log 2>&1 &
+    LLM_PROXY_PID=$!
+    sleep 2
+    if ! kill -0 $LLM_PROXY_PID 2>/dev/null; then
+        echo -e "${RED}ERROR: LLM proxy failed to start. See llm_proxy.log for details.${NC}"
+        exit 1
+    fi
 fi
 
 # Save PIDs for cleanup
@@ -116,8 +115,8 @@ echo $HTTP_PID > .http.pid
 if [ "$USE_LOCAL" = true ]; then
     echo $MCP_PID > .mcp.pid
     echo $MCP_PROXY_PID > .mcp_proxy.pid
+    echo $LLM_PROXY_PID > .llm_proxy.pid
 fi
-echo $LLM_PROXY_PID > .llm_proxy.pid
 
 echo ""
 echo -e "${GREEN}✓ All services started!${NC}"
@@ -127,10 +126,11 @@ echo "  • HTTP Server: http://localhost:8000 (PID: $HTTP_PID)"
 if [ "$USE_LOCAL" = true ]; then
     echo "  • MCP Server:  http://localhost:8001 (PID: $MCP_PID)"
     echo "  • MCP Proxy:   http://localhost:8010 (PID: $MCP_PROXY_PID)"
+    echo "  • LLM Proxy:   http://localhost:8011 (PID: $LLM_PROXY_PID)"
 else
-    echo "  • MCP Server:  https://biodiversity-mcp.nrp-nautilus.io/mcp (hosted)"
+    echo "  • MCP Server:  https://biodiversity-mcp.nrp-nautilus.io (hosted)"
+    echo "  • LLM Proxy:   https://llm-proxy.nrp-nautilus.io (hosted)"
 fi
-echo "  • LLM Proxy:   http://localhost:8011 (PID: $LLM_PROXY_PID)"
 echo ""
 echo "Open http://localhost:8000 in your browser"
 echo ""

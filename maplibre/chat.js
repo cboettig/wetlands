@@ -215,13 +215,17 @@ class WetlandsChatbot {
     async executeMCPQuery(sqlQuery) {
         console.log('Executing MCP query:', sqlQuery);
 
-        const response = await fetch(this.mcpServerUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
+        // SSE Protocol Implementation (matching Python mcp_proxy.py)
+        // Step 1: Connect to SSE endpoint to get session
+        const sseUrl = this.mcpServerUrl; // https://biodiversity-mcp.nrp-nautilus.io/sse
+        
+        return new Promise((resolve, reject) => {
+            const eventSource = new EventSource(sseUrl);
+            let sessionEndpoint = null;
+            let responseReceived = false;
+
+            // Prepare the JSON-RPC message
+            const message = {
                 jsonrpc: '2.0',
                 id: Date.now(),
                 method: 'tools/call',
@@ -231,22 +235,86 @@ class WetlandsChatbot {
                         query: sqlQuery
                     }
                 }
-            })
+            };
+
+            eventSource.onopen = () => {
+                console.log('SSE connection established');
+            };
+
+            eventSource.addEventListener('endpoint', async (event) => {
+                // Step 2: Receive the session endpoint (e.g., /messages/?session_id=<uuid>)
+                if (!sessionEndpoint) {
+                    sessionEndpoint = event.data;
+                    console.log('Received session endpoint:', sessionEndpoint);
+
+                    // Step 3: POST the message to the session endpoint
+                    const baseUrl = sseUrl.replace('/sse', '');
+                    const postUrl = `${baseUrl}${sessionEndpoint}`;
+                    
+                    try {
+                        const response = await fetch(postUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(message)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to post message: ${response.statusText}`);
+                        }
+                        
+                        console.log('Message posted to session endpoint');
+                    } catch (error) {
+                        console.error('Error posting message:', error);
+                        eventSource.close();
+                        reject(error);
+                    }
+                }
+            });
+
+            eventSource.addEventListener('message', (event) => {
+                // Step 4: Receive the response from SSE stream
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Received SSE message:', data);
+                    
+                    // Check if this is the response to our request
+                    if (data.id === message.id) {
+                        responseReceived = true;
+                        eventSource.close();
+
+                        if (data.error) {
+                            reject(new Error(`MCP error: ${data.error.message}`));
+                        } else {
+                            // Extract the text content from MCP response
+                            const result = data.result.content[0].text;
+                            resolve(result);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error parsing SSE message:', error);
+                    eventSource.close();
+                    reject(error);
+                }
+            });
+
+            eventSource.onerror = (error) => {
+                console.error('SSE connection error:', error);
+                eventSource.close();
+                if (!responseReceived) {
+                    reject(new Error('SSE connection failed'));
+                }
+            };
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                if (!responseReceived) {
+                    eventSource.close();
+                    reject(new Error('MCP query timeout'));
+                }
+            }, 30000);
         });
-
-        if (!response.ok) {
-            throw new Error(`MCP server error: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.error) {
-            throw new Error(`MCP error: ${data.error.message}`);
-        }
-
-        // Extract the text content from MCP response
-        const result = data.result.content[0].text;
-        return result;
     }
 }
 
