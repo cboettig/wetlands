@@ -1,7 +1,7 @@
-// Wetlands Data Chatbot
-// Uses an OpenAI-compatible LLM with MCP server access for querying wetlands data
+// Wetlands Data Chatbot - FIXED VERSION
+// Uses MCP SDK for proper SSE communication with MCP server
 
-// Import MCP SDK for proper SSE communication
+// Import MCP SDK (these will be loaded via importmap in HTML)
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
@@ -58,10 +58,7 @@ class WetlandsChatbot {
         } catch (error) {
             console.error('❌ MCP initialization error:', error);
             this.mcpClient = null;
-            // Show error in chat UI
-            setTimeout(() => {
-                this.addMessage('error', 'Database connection failed. Some features may not work. Please refresh the page.');
-            }, 1000);
+            this.addMessage('error', 'Failed to connect to database. Some features may not work.');
         }
     }
 
@@ -162,9 +159,6 @@ class WetlandsChatbot {
             return "Sorry, the database connection is not available. Please refresh the page to try again.";
         }
 
-        // Use the configured endpoint directly
-        let endpoint = this.llmEndpoint;
-
         // Build the prompt with system context
         const messages = [
             {
@@ -198,7 +192,7 @@ class WetlandsChatbot {
         }));
 
         // Call the LLM proxy (API key handled server-side)
-        const response = await fetch(endpoint, {
+        const response = await fetch(this.llmEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -225,7 +219,7 @@ class WetlandsChatbot {
             const toolCall = message.tool_calls[0];
             const functionArgs = JSON.parse(toolCall.function.arguments);
 
-            // Execute the query via MCP
+            // Execute the query via MCP (FIXED - uses SDK now)
             const queryResult = await this.executeMCPQuery(functionArgs.query);
 
             // Send the result back to LLM for interpretation
@@ -239,11 +233,10 @@ class WetlandsChatbot {
                 }
             ];
 
-            const followUpResponse = await fetch(endpoint, {
+            const followUpResponse = await fetch(this.llmEndpoint, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.llmApiKey}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     model: this.config.llm_model || 'gpt-4',
@@ -266,7 +259,7 @@ class WetlandsChatbot {
         console.log('🔧 Executing MCP query:', sqlQuery.substring(0, 100) + '...');
 
         try {
-            // Use MCP SDK to call the tool
+            // Use MCP SDK to call the tool (FIXED - was manual SSE before)
             const result = await this.mcpClient.callTool({
                 name: 'query',
                 arguments: {
