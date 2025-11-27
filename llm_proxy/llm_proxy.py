@@ -104,9 +104,17 @@ async def proxy_chat(request: ChatRequest):
             print(f"Response parsed successfully, has {len(str(result))} chars")
             # Log message content for debugging
             if 'choices' in result and len(result['choices']) > 0:
-                msg_content = result['choices'][0].get('message', {}).get('content')
+                message = result['choices'][0].get('message', {})
+                msg_content = message.get('content')
+                tool_calls = message.get('tool_calls')
+                
                 print(f"🔍 LLM Response message content: {msg_content[:200] if msg_content else 'NULL/EMPTY'}")
                 print(f"🔍 LLM Response message content length: {len(msg_content) if msg_content else 0}")
+                
+                if tool_calls:
+                    print(f"🔧 LLM Response includes tool_calls: {len(tool_calls)} calls")
+                    for i, tc in enumerate(tool_calls):
+                        print(f"🔧   Tool call {i+1}: {tc.get('function', {}).get('name')} - args: {tc.get('function', {}).get('arguments', '')[:100]}")
             return result
         except httpx.TimeoutException as e:
             elapsed = time.time() - start_time
