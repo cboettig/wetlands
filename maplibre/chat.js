@@ -256,9 +256,65 @@ class WetlandsChatbot {
             console.log('[LLM] Tool arguments:', toolCall.function.arguments);
 
             const functionArgs = JSON.parse(toolCall.function.arguments);
+            
+            // Check if the query argument is missing or empty
+            if (!functionArgs.query || functionArgs.query.trim() === '') {
+                console.warn('[LLM] ⚠️  WARNING: Tool call missing or empty "query" argument!');
+                console.log('[LLM] Attempting retry with explicit prompt...');
+                
+                // Retry with explicit prompt
+                const retryMessages = [
+                    ...messages,
+                    {
+                        role: 'user',
+                        content: 'Please provide the exact SQL query to answer this question. Use the "query" tool with the SQL as the argument.'
+                    }
+                ];
+                
+                const retryResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: this.config.llm_model || 'gpt-4',
+                        messages: retryMessages,
+                        tools: tools,
+                        tool_choice: 'auto'
+                    })
+                });
+                
+                if (retryResponse.ok) {
+                    const retryData = await retryResponse.json();
+                    const retryMessage = retryData.choices[0].message;
+                    
+                    if (retryMessage.tool_calls && retryMessage.tool_calls.length > 0) {
+                        const retryToolCall = retryMessage.tool_calls[0];
+                        const retryArgs = JSON.parse(retryToolCall.function.arguments);
+                        
+                        if (retryArgs.query && retryArgs.query.trim() !== '') {
+                            console.log('[LLM] ✅ Retry successful, got query!');
+                            // Use the retry results
+                            toolCall.function.arguments = retryToolCall.function.arguments;
+                            toolCall.id = retryToolCall.id;
+                            Object.assign(functionArgs, retryArgs);
+                        } else {
+                            console.error('[LLM] ❌ Retry failed - still no query argument');
+                            throw new Error('LLM failed to provide SQL query after retry');
+                        }
+                    } else {
+                        console.error('[LLM] ❌ Retry did not generate tool calls');
+                        throw new Error('LLM did not generate a tool call after retry');
+                    }
+                } else {
+                    console.error('[LLM] ❌ Retry request failed');
+                    throw new Error('Failed to retry LLM request');
+                }
+            }
 
             // Execute the query via MCP
             console.log('[MCP] Executing query via MCP...');
+            console.log('[MCP] Query:', functionArgs.query.substring(0, 100) + '...');
             const queryResult = await this.executeMCPQuery(functionArgs.query);
             console.log('[MCP] Query result length:', queryResult.length);
 

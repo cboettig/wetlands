@@ -18,10 +18,10 @@ metadata:
     
     # 6. CRITICAL: Timeout settings for long-running queries
     # Server timeout: How long to wait for backend (MCP server) to respond
-    haproxy.org/timeout-server: "300s"  # 5 minutes for long DuckDB queries
+    haproxy.org/timeout-server: "600s"  # 10 minutes for long DuckDB queries
     
     # Client timeout: How long to keep connection open to client
-    haproxy.org/timeout-client: "300s"  # 5 minutes
+    haproxy.org/timeout-client: "600s"  # 10 minutes
     
     # Tunnel timeout: For SSE connections (Server-Sent Events)
     haproxy.org/timeout-tunnel: "3600s"  # 1 hour for long-lived SSE connections
