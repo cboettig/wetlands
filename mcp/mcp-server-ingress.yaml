@@ -3,21 +3,18 @@ kind: Ingress
 metadata:
   name: mcp-server-ingress
   annotations:
-    # 1. Turn on CORS for this Ingress
+    # CORS headers added manually via response-set-header
+    haproxy.org/response-set-header: |
+      Access-Control-Allow-Origin *
+      Access-Control-Allow-Methods "GET, POST, OPTIONS"
+      Access-Control-Allow-Headers "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization"
+      Access-Control-Max-Age 600
+    
+    # Also enable standard CORS
     haproxy.org/cors-enable: "true"
-    
-    # 2. Allow all origins (since you said it is a public service)
-    # If you want to restrict it later, replace "*" with "https://app.nrp-nautilus.io"
     haproxy.org/cors-allow-origin: "*"
-    
-    # 3. Critical: Allow POST (for messages) and GET (for SSE)
     haproxy.org/cors-allow-methods: "GET, POST, OPTIONS"
-    
-    # 4. Critical: Allow Content-Type (needed for the JSON payload)
-    haproxy.org/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
-    
-    # 5. Optional: Cache the preflight check for 10 minutes to reduce traffic
-    haproxy.org/cors-max-age: "600"
+    haproxy.org/cors-allow-headers: "*"
     
     # 6. CRITICAL: Timeout settings for long-running queries
     # Server timeout: How long to wait for backend (MCP server) to respond

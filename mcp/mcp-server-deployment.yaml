@@ -16,14 +16,27 @@ spec:
       labels:
         app: mcp-server
     spec:
-
-
       containers:
+      # Nginx sidecar to add CORS headers
+      - name: nginx-cors-proxy
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      
+      # MCP server (backend, not exposed directly)
       - name: mcp-server
         image: astral/uv:python3.12-bookworm-slim
-        command: ["uvx", "mcp-server-motherduck", "--port", "8001", "--host", "0.0.0.0", "--db-path", "/data/duck.db", "--transport", "sse"]
-        ports:
-        - containerPort: 8001
+        command: ["uvx", "mcp-server-motherduck", "--port", "8001", "--host", "127.0.0.1", "--db-path", "/data/duck.db", "--transport", "sse"]
         resources:
           requests:
             cpu: "2"
@@ -34,10 +47,58 @@ spec:
         volumeMounts:
         - name: duckdb-data
           mountPath: /data
+      
       volumes:
+      - name: nginx-config
+        configMap:
+          name: mcp-nginx-cors-config
       - name: duckdb-data
         persistentVolumeClaim:
           claimName: duckdb-pvc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-nginx-cors-config
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        
+        location / {
+            # Proxy to MCP server on localhost
+            proxy_pass http://127.0.0.1:8001;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # SSE specific settings
+            proxy_set_header Connection '';
+            proxy_buffering off;
+            proxy_cache off;
+            chunked_transfer_encoding off;
+            
+            # CORS headers
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            add_header 'Access-Control-Max-Age' 600 always;
+            
+            # Handle preflight OPTIONS requests
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                add_header 'Access-Control-Max-Age' 600;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+        }
+    }
 ---
 apiVersion: v1
 kind: Service
@@ -49,4 +110,4 @@ spec:
   ports:
     - protocol: TCP
       port: 8001
-      targetPort: 8001
+      targetPort: 8080  # Point to nginx sidecar, not MCP server directly

@@ -42,13 +42,13 @@ else
 fi
 
 if [ -z "$LLM_ENDPOINT" ]; then
-    # Try to read from mcp/config.json
-    LLM_ENDPOINT=$(python3 -c "import json; print(json.load(open('mcp/config.json'))['llm_endpoint'])" 2>/dev/null)
+    # Try to read from maplibre/config.json
+    LLM_ENDPOINT=$(python3 -c "import json; print(json.load(open('maplibre/config.json'))['llm_endpoint'])" 2>/dev/null)
     if [ -z "$LLM_ENDPOINT" ]; then
-        echo "WARNING: LLM_ENDPOINT not set, using default OpenAI endpoint"
-        export LLM_ENDPOINT="https://api.openai.com/v1/chat/completions"
+        echo "WARNING: LLM_ENDPOINT not set, using default"
+        export LLM_ENDPOINT="https://api.glama.ai/v1/chat/completions"
     else
-        echo "INFO: LLM_ENDPOINT not set, using value from mcp/config.json: $LLM_ENDPOINT"
+        echo "INFO: Using LLM_ENDPOINT from maplibre/config.json: $LLM_ENDPOINT"
         export LLM_ENDPOINT="$LLM_ENDPOINT"
     fi
 fi
