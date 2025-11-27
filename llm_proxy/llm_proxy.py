@@ -63,6 +63,11 @@ async def proxy_chat(request: ChatRequest):
     print(f"Proxying request to: {LLM_ENDPOINT}")
     print(f"Model: {request.model}")
     print(f"Messages count: {len(request.messages)}")
+    if request.tools:
+        print(f"Tools provided: {len(request.tools)} tools")
+        # Log tool names for debugging
+        tool_names = [t.get('function', {}).get('name', 'unknown') for t in request.tools]
+        print(f"Tool names: {tool_names}")
     
     # Prepare request to LLM
     headers = {
@@ -80,20 +85,39 @@ async def proxy_chat(request: ChatRequest):
     if request.tools:
         payload["tools"] = request.tools
         payload["tool_choice"] = request.tool_choice
+        print(f"Added tools to payload, tool_choice: {request.tool_choice}")
     
     # Make request to LLM
+    print(f"Sending request to LLM...")
+    import time
+    start_time = time.time()
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
+            print(f"Calling httpx.post...")
             response = await client.post(LLM_ENDPOINT, json=payload, headers=headers)
+            elapsed = time.time() - start_time
+            print(f"Got response object: {response.status_code} (took {elapsed:.2f}s)")
+            print(f"Response headers: {dict(response.headers)}")
             response.raise_for_status()
-            return response.json()
+            print(f"Status check passed, parsing JSON...")
+            result = response.json()
+            print(f"Response parsed successfully, has {len(str(result))} chars")
+            return result
+        except httpx.TimeoutException as e:
+            elapsed = time.time() - start_time
+            error_detail = f"LLM request timed out after {elapsed:.2f}s"
+            print(f"ERROR TimeoutException: {error_detail}")
+            raise HTTPException(status_code=504, detail=error_detail)
         except httpx.HTTPStatusError as e:
             error_detail = f"LLM API returned {e.response.status_code}: {e.response.text}"
-            print(f"ERROR: {error_detail}")
+            print(f"ERROR HTTPStatusError: {error_detail}")
             raise HTTPException(status_code=500, detail=error_detail)
         except Exception as e:
-            error_detail = f"LLM request failed: {type(e).__name__}: {str(e)}"
-            print(f"ERROR: {error_detail}")
+            elapsed = time.time() - start_time
+            error_detail = f"LLM request failed after {elapsed:.2f}s: {type(e).__name__}: {str(e)}"
+            print(f"ERROR Exception: {error_detail}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(status_code=500, detail=error_detail)
 
 @app.post("/llm")

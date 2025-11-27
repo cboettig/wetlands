@@ -13,7 +13,7 @@ metadata:
     haproxy.org/cors-allow-methods: "GET, POST, OPTIONS"
     
     # Allow necessary headers (removed Authorization since we're not using proxy auth token)
-    haproxy.org/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+    haproxy.org/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Accept,Accept-Encoding,Accept-Language,Connection,Host,Origin,Referer,Sec-Fetch-Dest,Sec-Fetch-Mode,Sec-Fetch-Site,Priority"
     
     # Expose headers in responses
     haproxy.org/cors-expose-headers: "Content-Length,Content-Range"
@@ -27,6 +27,11 @@ metadata:
     # Increase timeout for LLM requests (10 minutes for tool calling)
     haproxy.org/timeout-http-request: "600s"
     haproxy.org/timeout-server: "600s"
+    haproxy.org/timeout-client: "600s"
+    haproxy.org/timeout-connect: "30s"
+    
+    # Return CORS headers even on error responses
+    haproxy.org/error-files: "true"
 
 spec:
   ingressClassName: haproxy

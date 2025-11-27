@@ -256,12 +256,12 @@ class WetlandsChatbot {
             console.log('[LLM] Tool arguments:', toolCall.function.arguments);
 
             const functionArgs = JSON.parse(toolCall.function.arguments);
-            
+
             // Check if the query argument is missing or empty
             if (!functionArgs.query || functionArgs.query.trim() === '') {
                 console.warn('[LLM] ⚠️  WARNING: Tool call missing or empty "query" argument!');
                 console.log('[LLM] Attempting retry with explicit prompt...');
-                
+
                 // Retry with explicit prompt
                 const retryMessages = [
                     ...messages,
@@ -270,7 +270,7 @@ class WetlandsChatbot {
                         content: 'Please provide the exact SQL query to answer this question. Use the "query" tool with the SQL as the argument.'
                     }
                 ];
-                
+
                 const retryResponse = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
@@ -283,15 +283,15 @@ class WetlandsChatbot {
                         tool_choice: 'auto'
                     })
                 });
-                
+
                 if (retryResponse.ok) {
                     const retryData = await retryResponse.json();
                     const retryMessage = retryData.choices[0].message;
-                    
+
                     if (retryMessage.tool_calls && retryMessage.tool_calls.length > 0) {
                         const retryToolCall = retryMessage.tool_calls[0];
                         const retryArgs = JSON.parse(retryToolCall.function.arguments);
-                        
+
                         if (retryArgs.query && retryArgs.query.trim() !== '') {
                             console.log('[LLM] ✅ Retry successful, got query!');
                             // Use the retry results
