@@ -7,7 +7,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: mcp-server
@@ -36,7 +39,7 @@ spec:
       # MCP server (backend, not exposed directly)
       - name: mcp-server
         image: astral/uv:python3.12-bookworm-slim
-        command: ["uvx", "mcp-server-motherduck", "--port", "8001", "--host", "127.0.0.1", "--db-path", "/data/duck.db", "--transport", "sse"]
+        command: ["uvx", "mcp-server-motherduck", "--port", "8001", "--host", "127.0.0.1", "--db-path", ":memory:", "--transport", "sse"]
         resources:
           requests:
             cpu: "12"
@@ -44,17 +47,11 @@ spec:
           limits:
             cpu: "12"
             memory: "32Gi"
-        volumeMounts:
-        - name: duckdb-data
-          mountPath: /data
       
       volumes:
       - name: nginx-config
         configMap:
           name: mcp-nginx-cors-config
-      - name: duckdb-data
-        persistentVolumeClaim:
-          claimName: duckdb-pvc
 ---
 apiVersion: v1
 kind: ConfigMap
