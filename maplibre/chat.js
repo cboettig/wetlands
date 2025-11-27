@@ -20,6 +20,7 @@ class WetlandsChatbot {
         this.messages = [];
         this.mcpClient = null;
         this.mcpTools = [];
+        this.selectedModel = config.llm_model || 'glm-4.6'; // Default model
 
         this.initializeUI();
         this.loadSystemPrompt();
@@ -77,7 +78,17 @@ class WetlandsChatbot {
         container.id = 'chat-container';
         container.innerHTML = `
             <div id="chat-header">
-                <h3>🦆 Wetlands Data Assistant</h3>
+                <div id="chat-title">
+                    <h3>🦆 Wetlands Data Assistant</h3>
+                    <select id="model-selector" title="Select LLM Model">
+                        <option value="glm-4.6">GLM-4.6</option>
+                        <option value="gpt-oss">GPT-OSS</option>
+                        <option value="qwen3">Qwen3</option>
+                        <option value="glm-v">GLM-V</option>
+                        <option value="gemma">Gemma</option>
+                        <option value="kimi">Kimi</option>
+                    </select>
+                </div>
                 <button id="chat-toggle">−</button>
             </div>
             <div id="chat-messages"></div>
@@ -88,11 +99,18 @@ class WetlandsChatbot {
         `;
         document.body.appendChild(container);
 
+        // Set initial model value
+        document.getElementById('model-selector').value = this.selectedModel;
+
         // Event listeners
         document.getElementById('chat-toggle').addEventListener('click', () => this.toggleChat());
         document.getElementById('chat-send').addEventListener('click', () => this.sendMessage());
         document.getElementById('chat-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
+        });
+        document.getElementById('model-selector').addEventListener('change', (e) => {
+            this.selectedModel = e.target.value;
+            console.log('Model changed to:', this.selectedModel);
         });
 
         // Welcome message
@@ -247,7 +265,7 @@ class WetlandsChatbot {
         }));
 
         const requestPayload = {
-            model: this.config.llm_model || 'gpt-4',
+            model: this.selectedModel,
             messages: messages,
             tools: tools,
             tool_choice: 'auto'
@@ -325,7 +343,7 @@ class WetlandsChatbot {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: this.config.llm_model || 'gpt-4',
+                        model: this.selectedModel,
                         messages: retryMessages,
                         tools: tools,
                         tool_choice: 'auto'
@@ -392,7 +410,7 @@ class WetlandsChatbot {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: this.config.llm_model || 'gpt-4',
+                    model: this.selectedModel,
                     messages: followUpMessages,
                     tools: tools,  // Include tools so LLM can make additional tool calls if needed
                     tool_choice: 'auto'
