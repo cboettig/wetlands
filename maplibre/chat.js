@@ -412,8 +412,8 @@ class WetlandsChatbot {
                 body: JSON.stringify({
                     model: this.selectedModel,
                     messages: followUpMessages,
-                    // Do NOT allow additional tool calls - LLM should just interpret the result
-                    tool_choice: 'none'
+                    tools: tools,  // Must include tools to avoid errors, but system prompt discourages use
+                    tool_choice: 'auto'
                 })
             });
 
@@ -432,11 +432,23 @@ class WetlandsChatbot {
             // Log if LLM is trying to make additional tool calls
             const followUpMessage = followUpData.choices?.[0]?.message;
             if (followUpMessage?.tool_calls && followUpMessage.tool_calls.length > 0) {
-                console.warn('[LLM] ⚠️  LLM attempting additional tool calls in follow-up!');
+                console.warn('[LLM] ⚠️  LLM attempting additional tool calls in follow-up - IGNORING!');
                 console.warn('[LLM] 🔧 Attempted tool calls:', followUpMessage.tool_calls.map(tc => ({
                     tool: tc.function.name,
-                    args: tc.function.arguments
+                    args: JSON.parse(tc.function.arguments || '{}')
                 })));
+                console.warn('[LLM] System prompt clearly states: ONE query per question, no follow-ups!');
+                
+                // If there's content, use it. Otherwise provide a helpful error
+                if (followUpMessage.content && followUpMessage.content.trim() !== '') {
+                    console.log('[LLM] Using available content despite attempted tool calls');
+                } else {
+                    console.error('[LLM] No content available, LLM only provided tool calls');
+                    return {
+                        response: 'The model attempted to make unnecessary follow-up queries instead of interpreting the results. **Check the SQL query and results below.** The original query executed successfully:\n\n```\n' + queryResult.substring(0, 500) + (queryResult.length > 500 ? '...\n```\n\n(Results truncated)' : '\n```'),
+                        sqlQuery: sqlQuery
+                    };
+                }
             }
             
             console.warn('[LLM] 🔍 Follow-up full response:', followUpData);
@@ -444,9 +456,7 @@ class WetlandsChatbot {
             console.warn('[LLM] 🔍 Follow-up message:', followUpMessage);
             console.log('[LLM] Follow-up message content length:', followUpMessage?.content?.length || 0);
 
-            const finalContent = followUpData.choices[0].message.content;
-
-            // Check for empty response from LLM
+            const finalContent = followUpData.choices[0].message.content;            // Check for empty response from LLM
             if (!finalContent || finalContent.trim() === '') {
                 console.warn('[LLM] ⚠️  WARNING: LLM returned empty content after tool call');
                 console.log('[LLM] Tool result was:', queryResult.substring(0, 200));
