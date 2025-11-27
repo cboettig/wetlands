@@ -1,7 +1,9 @@
 name: Binder Image
 on:
   workflow_dispatch: null
-  push: null
+  push:
+    paths:
+      - 'app/**'
 jobs:
   build:
     runs-on: ubuntu-latest
