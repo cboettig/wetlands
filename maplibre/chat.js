@@ -475,7 +475,9 @@ class WetlandsChatbot {
             response: directContent,
             sqlQuery: null
         };
-    } async executeMCPQuery(sqlQuery) {
+    }
+
+    async executeMCPQuery(sqlQuery) {
         if (!this.mcpClient) {
             throw new Error('MCP client not initialized');
         }
