@@ -404,6 +404,8 @@ class WetlandsChatbot {
             console.warn('[LLM] 🔍 Tool result being sent to LLM (first 300 chars):', queryResult.substring(0, 300));
             const followUpStartTime = Date.now();
 
+            // CRITICAL: Do NOT include tools in follow-up response
+            // This enforces ONE tool call per query - no chaining, no loops
             const followUpResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -411,9 +413,8 @@ class WetlandsChatbot {
                 },
                 body: JSON.stringify({
                     model: this.selectedModel,
-                    messages: followUpMessages,
-                    tools: tools,  // Must include tools to avoid errors, but system prompt discourages use
-                    tool_choice: 'auto'
+                    messages: followUpMessages
+                    // Deliberately omit 'tools' - LLM MUST respond with text, not more tool calls
                 })
             });
 
@@ -429,30 +430,14 @@ class WetlandsChatbot {
             const followUpData = await followUpResponse.json();
             console.log('[LLM] Follow-up response parsed successfully');
             
-            // Log if LLM is trying to make additional tool calls
+            // Sanity check: tool_calls should be impossible since we didn't send tools
             const followUpMessage = followUpData.choices?.[0]?.message;
             if (followUpMessage?.tool_calls && followUpMessage.tool_calls.length > 0) {
-                console.warn('[LLM] ⚠️  LLM attempting additional tool calls in follow-up - IGNORING!');
-                console.warn('[LLM] 🔧 Attempted tool calls:', followUpMessage.tool_calls.map(tc => ({
-                    tool: tc.function.name,
-                    args: JSON.parse(tc.function.arguments || '{}')
-                })));
-                console.warn('[LLM] System prompt clearly states: ONE query per question, no follow-ups!');
-                
-                // If there's content, use it. Otherwise provide a helpful error
-                if (followUpMessage.content && followUpMessage.content.trim() !== '') {
-                    console.log('[LLM] Using available content despite attempted tool calls');
-                } else {
-                    console.error('[LLM] No content available, LLM only provided tool calls');
-                    return {
-                        response: 'The model attempted to make unnecessary follow-up queries instead of interpreting the results. **Check the SQL query and results below.** The original query executed successfully:\n\n```\n' + queryResult.substring(0, 500) + (queryResult.length > 500 ? '...\n```\n\n(Results truncated)' : '\n```'),
-                        sqlQuery: sqlQuery
-                    };
-                }
+                console.error('[LLM] ❌ UNEXPECTED: LLM returned tool_calls despite no tools provided!');
+                console.error('[LLM] This should not happen - system may be broken');
+                console.error('[LLM] Attempted tool calls:', followUpMessage.tool_calls);
             }
             
-            console.warn('[LLM] 🔍 Follow-up full response:', followUpData);
-            console.warn('[LLM] 🔍 Follow-up choices:', followUpData.choices);
             console.warn('[LLM] 🔍 Follow-up message:', followUpMessage);
             console.log('[LLM] Follow-up message content length:', followUpMessage?.content?.length || 0);
 
