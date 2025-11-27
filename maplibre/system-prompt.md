@@ -118,7 +118,7 @@ SELECT
     COUNT(h8) as hex_count,
     ROUND(COUNT(h8) * 73.7327598, 2) as area_hectares,
     ROUND(COUNT(h8) * 0.737327598, 2) as area_km2
-FROM read_parquet('s3://public-wetlands/hex/**')
+FROM read_parquet('s3://public-wetlands/glwd/hex/**')
 WHERE Z > 0
 GROUP BY category
 ORDER BY area_km2 DESC;
@@ -135,7 +135,7 @@ SELECT
     COUNT(w.h8) as hex_count,
     ROUND(COUNT(w.h8) * 73.7327598, 2) as area_hectares,
     ROUND(AVG(s.richness), 1) as avg_species
-FROM read_parquet('s3://public-wetlands/hex/**') w
+FROM read_parquet('s3://public-wetlands/glwd/hex/**') w
 JOIN read_parquet('https://minio.carlboettiger.info/public-mobi/hex/all-richness-h8.parquet') s
 ON w.h8 = s.h8
 WHERE w.Z > 0
@@ -156,7 +156,7 @@ SELECT
     ROUND(COUNT(h8) * 73.7327598, 2) as total_hectares,
     ROUND(COUNT(h8) * 0.737327598, 2) as total_km2,
     ROUND(COUNT(h8) * 0.284679, 2) as total_sq_miles
-FROM read_parquet('s3://public-wetlands/hex/**')
+FROM read_parquet('s3://public-wetlands/glwd/hex/**')
 WHERE Z BETWEEN 24 AND 31;
 ```
 
