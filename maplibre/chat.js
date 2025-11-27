@@ -119,6 +119,8 @@ class WetlandsChatbot {
 
         if (!userMessage) return;
 
+        console.log('[Chat] Sending message:', userMessage);
+
         // Add user message
         this.addMessage('user', userMessage);
         this.messages.push({ role: 'user', content: userMessage });
@@ -132,7 +134,9 @@ class WetlandsChatbot {
         this.addMessage('system', 'Analyzing data<span class="loading-dots"></span>');
 
         try {
+            console.log('[Chat] Calling queryLLM...');
             const response = await this.queryLLM(userMessage);
+            console.log('[Chat] Got response, length:', response?.length);
 
             // Remove loading message
             const messagesDiv = document.getElementById('chat-messages');
@@ -143,7 +147,8 @@ class WetlandsChatbot {
             this.messages.push({ role: 'assistant', content: response });
 
         } catch (error) {
-            console.error('Chat error:', error);
+            console.error('[Chat] Error caught:', error);
+            console.error('[Chat] Error stack:', error.stack);
 
             // Remove loading message
             const messagesDiv = document.getElementById('chat-messages');
@@ -164,6 +169,8 @@ class WetlandsChatbot {
 
         // Use the configured endpoint directly
         let endpoint = this.llmEndpoint;
+        console.log('[LLM] Starting request to:', endpoint);
+        console.log('[LLM] Origin:', window.location.origin);
 
         // Build the prompt with system context
         const messages = [
@@ -197,36 +204,63 @@ class WetlandsChatbot {
             }
         }));
 
+        const requestPayload = {
+            model: this.config.llm_model || 'gpt-4',
+            messages: messages,
+            tools: tools,
+            tool_choice: 'auto'
+        };
+        
+        console.log('[LLM] Request payload:', {
+            model: requestPayload.model,
+            messageCount: requestPayload.messages.length,
+            toolCount: requestPayload.tools.length
+        });
+
         // Call the LLM proxy (API key handled server-side)
+        console.log('[LLM] Sending fetch request...');
+        const startTime = Date.now();
+        
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                model: this.config.llm_model || 'gpt-4',
-                messages: messages,
-                tools: tools,
-                tool_choice: 'auto'
-            })
+            body: JSON.stringify(requestPayload)
         });
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[LLM] Response received after ${elapsed}ms, status: ${response.status}`);
+        console.log('[LLM] Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('LLM API Error:', response.status, errorText);
+            console.error('[LLM] Error response body:', errorText);
+            console.error('[LLM] Full response status:', response.status, response.statusText);
             throw new Error(`LLM API error (${response.status}): ${response.statusText}`);
         }
 
+        console.log('[LLM] Parsing JSON response...');
         const data = await response.json();
+        console.log('[LLM] Response parsed successfully:', {
+            hasChoices: !!data.choices,
+            choiceCount: data.choices?.length
+        });
         const message = data.choices[0].message;
 
         // Check if LLM wants to call a tool
         if (message.tool_calls && message.tool_calls.length > 0) {
+            console.log('[LLM] Tool calls requested:', message.tool_calls.length);
             const toolCall = message.tool_calls[0];
+            console.log('[LLM] Executing tool:', toolCall.function.name);
+            console.log('[LLM] Tool arguments:', toolCall.function.arguments);
+            
             const functionArgs = JSON.parse(toolCall.function.arguments);
 
             // Execute the query via MCP
+            console.log('[MCP] Executing query via MCP...');
             const queryResult = await this.executeMCPQuery(functionArgs.query);
+            console.log('[MCP] Query result length:', queryResult.length);
 
             // Send the result back to LLM for interpretation
             const followUpMessages = [
@@ -239,6 +273,9 @@ class WetlandsChatbot {
                 }
             ];
 
+            console.log('[LLM] Sending follow-up request with tool result...');
+            const followUpStartTime = Date.now();
+            
             const followUpResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -251,10 +288,21 @@ class WetlandsChatbot {
                 })
             });
 
+            const followUpElapsed = Date.now() - followUpStartTime;
+            console.log(`[LLM] Follow-up response received after ${followUpElapsed}ms, status: ${followUpResponse.status}`);
+            
+            if (!followUpResponse.ok) {
+                const errorText = await followUpResponse.text();
+                console.error('[LLM] Follow-up error:', followUpResponse.status, errorText);
+                throw new Error(`LLM follow-up error (${followUpResponse.status}): ${followUpResponse.statusText}`);
+            }
+            
             const followUpData = await followUpResponse.json();
+            console.log('[LLM] Follow-up response parsed successfully');
             return followUpData.choices[0].message.content;
         }
 
+        console.log('[LLM] Returning direct message content (no tool calls)');
         return message.content;
     }
 
