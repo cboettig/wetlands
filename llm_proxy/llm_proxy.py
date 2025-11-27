@@ -14,13 +14,16 @@ from typing import List, Dict, Any, Optional
 
 app = FastAPI(title="LLM Proxy for Wetlands Chatbot")
 
-# Enable CORS - configured for production deployment
+# Enable CORS - only allow requests from GitHub Pages site
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Can be restricted to specific domains if needed
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "https://boettiger-lab.github.io",
+        "http://localhost:8000",  # For local testing
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept"],
 )
 
 # Get configuration from environment
