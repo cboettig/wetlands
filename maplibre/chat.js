@@ -1,5 +1,11 @@
 // Wetlands Data Chatbot
 // Uses an OpenAI-compatible LLM with MCP server access for querying wetlands data
+//
+// Debugging & Error Handling:
+// - Enhanced logging for MCP query results and empty responses
+// - Detects and warns about potential truncation (50K character limit in mcp-server-motherduck)
+// - Validates tool call arguments and LLM responses for empty content
+// - Provides user-friendly error messages for common failure scenarios
 
 // Import MCP SDK for proper SSE communication
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -290,11 +296,14 @@ class WetlandsChatbot {
             const toolCall = message.tool_calls[0];
             console.log('[LLM] Executing tool:', toolCall.function.name);
             console.log('[LLM] Tool arguments:', toolCall.function.arguments);
+            console.log('[LLM] Tool call ID:', toolCall.id);
 
             const functionArgs = JSON.parse(toolCall.function.arguments);
 
             // Capture the SQL query
             sqlQuery = functionArgs.query;
+
+            console.log('[LLM] Parsed query argument length:', functionArgs.query?.length || 0);
 
             // Check if the query argument is missing or empty
             if (!functionArgs.query || functionArgs.query.trim() === '') {
@@ -357,7 +366,8 @@ class WetlandsChatbot {
             console.log('[MCP] Executing query via MCP...');
             console.log('[MCP] Query:', functionArgs.query.substring(0, 100) + '...');
             const queryResult = await this.executeMCPQuery(functionArgs.query);
-            console.log('[MCP] Query result length:', queryResult.length);
+            console.log('[MCP] Query result type:', typeof queryResult);
+            console.log('[MCP] Query result length:', queryResult?.length || 0);
 
             // Send the result back to LLM for interpretation
             const followUpMessages = [
@@ -376,8 +386,7 @@ class WetlandsChatbot {
             const followUpResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.llmApiKey}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     model: this.config.llm_model || 'gpt-4',
@@ -398,20 +407,46 @@ class WetlandsChatbot {
 
             const followUpData = await followUpResponse.json();
             console.log('[LLM] Follow-up response parsed successfully');
+            console.log('[LLM] Follow-up message content length:', followUpData.choices[0].message.content?.length || 0);
+
+            const finalContent = followUpData.choices[0].message.content;
+
+            // Check for empty response from LLM
+            if (!finalContent || finalContent.trim() === '') {
+                console.warn('[LLM] ⚠️  WARNING: LLM returned empty content after tool call');
+                console.log('[LLM] Tool result was:', queryResult.substring(0, 200));
+                console.log('[LLM] SQL query preserved for debugging:', sqlQuery.substring(0, 100) + '...');
+                return {
+                    response: 'I processed the query but had trouble generating a response. **Check the SQL query below** to see what was executed. The query ran successfully but I couldn\'t interpret the results. Please try rephrasing your question.',
+                    sqlQuery: sqlQuery  // SQL query is preserved for UI display
+                };
+            }
+
             return {
-                response: followUpData.choices[0].message.content,
+                response: finalContent,
                 sqlQuery: sqlQuery
             };
         }
 
         console.log('[LLM] Returning direct message content (no tool calls)');
+        console.log('[LLM] Direct content length:', message.content?.length || 0);
+
+        const directContent = message.content;
+
+        // Check for empty direct response
+        if (!directContent || directContent.trim() === '') {
+            console.warn('[LLM] ⚠️  WARNING: LLM returned empty direct content');
+            return {
+                response: 'I received your question but had trouble generating a response. Please try rephrasing or asking something else.',
+                sqlQuery: null
+            };
+        }
+
         return {
-            response: message.content,
+            response: directContent,
             sqlQuery: null
         };
-    }
-
-    async executeMCPQuery(sqlQuery) {
+    } async executeMCPQuery(sqlQuery) {
         if (!this.mcpClient) {
             throw new Error('MCP client not initialized');
         }
@@ -427,17 +462,49 @@ class WetlandsChatbot {
                 }
             });
 
+            console.log('[MCP] Raw result structure:', {
+                hasContent: !!result.content,
+                contentLength: result.content?.length,
+                contentType: typeof result.content
+            });
+
             // Extract text from result
             if (result.content && result.content.length > 0) {
                 const text = result.content[0].text;
+                const textLength = text?.length || 0;
+
+                console.log('[MCP] Result text length:', textLength, 'characters');
+
+                // Check for empty results
+                if (!text || text.trim() === '') {
+                    console.warn('[MCP] ⚠️  WARNING: Query returned empty text content');
+                    console.log('[MCP] Content object:', result.content[0]);
+                    console.log('[MCP] NOTE: SQL query is preserved and will be shown in UI for debugging');
+                    return 'The query executed successfully but returned no data. This could mean:\n- No rows matched your query criteria\n- The result was empty\n\n**Check the SQL query below** to verify it\'s correct, or try a different query.';
+                }
+
+                // Check for potential truncation (mcp-server-motherduck has 50,000 char limit)
+                if (textLength >= 49000) {
+                    console.warn('[MCP] ⚠️  WARNING: Result may be truncated (approaching 50K character limit)');
+                    console.warn('[MCP] Consider adding LIMIT clause to reduce result size');
+                }
+
                 console.log('✅ Query result received:', text.substring(0, 200) + '...');
                 return text;
             }
 
+            // No content in response
+            console.error('[MCP] ❌ No content in MCP response');
+            console.error('[MCP] Full result object:', JSON.stringify(result, null, 2));
             throw new Error('No content in MCP response');
 
         } catch (error) {
             console.error('❌ MCP query error:', error);
+            console.error('[MCP] Error details:', {
+                message: error.message,
+                stack: error.stack,
+                type: error.constructor.name
+            });
             throw new Error(`Database query failed: ${error.message}`);
         }
     }
