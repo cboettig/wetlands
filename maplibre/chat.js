@@ -263,6 +263,16 @@ class WetlandsChatbot {
 
         // Convert MCP tools to OpenAI function format
         console.log('[LLM] Raw MCP tools available:', this.mcpTools?.length || 0);
+
+        // Check if tools are available
+        if (!this.mcpTools || this.mcpTools.length === 0) {
+            console.error('[LLM] ❌ No MCP tools available - cannot execute queries');
+            return {
+                response: 'The database connection is not available. MCP tools failed to load. Please refresh the page and try again.',
+                sqlQuery: null
+            };
+        }
+
         const tools = this.mcpTools.map(tool => ({
             type: 'function',
             function: {
@@ -493,6 +503,26 @@ class WetlandsChatbot {
                 response: 'I received your question but had trouble generating a response. Please try rephrasing or asking something else.',
                 sqlQuery: this.lastSqlQuery // Preserve last SQL query if available
             };
+        }
+
+        // Detect if LLM is returning SQL as text instead of using tool call
+        // This indicates the LLM ignored the system prompt or tools weren't available
+        if (directContent.toLowerCase().includes('select ') ||
+            directContent.toLowerCase().includes('set threads') ||
+            directContent.toLowerCase().includes('install httpfs')) {
+            console.warn('[LLM] ⚠️  WARNING: LLM appears to be returning SQL as text instead of using tool call!');
+            console.warn('[LLM] This usually means:');
+            console.warn('[LLM]   1. MCP tools were not available when request was made');
+            console.warn('[LLM]   2. LLM is ignoring the system prompt instructions');
+            console.warn('[LLM]   3. LLM endpoint/model does not support function calling properly');
+
+            // If we have no prior SQL, this is likely the initial response with SQL as text
+            if (!this.lastSqlQuery) {
+                return {
+                    response: 'I generated a SQL query but was unable to execute it. The database tools may not be available. Please refresh the page and try again.\n\n' + directContent,
+                    sqlQuery: null
+                };
+            }
         }
 
         // For direct responses (no tool call), include last SQL if it exists
