@@ -6,6 +6,21 @@ const map = new maplibregl.Map({
     zoom: 1.5
 });
 
+// Add error handlers for debugging
+map.on('error', function(e) {
+    console.error('Map error:', e);
+});
+
+map.on('styleimagemissing', function(e) {
+    console.warn('Style image missing:', e.id);
+});
+
+map.on('sourcedata', function(e) {
+    if (e.sourceId === 'wetlands-cog' && e.isSourceLoaded) {
+        console.log('Wetlands source loaded');
+    }
+});
+
 // Store style URLs
 const darkStyleUrl = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const datavizStyleUrl = 'https://api.maptiler.com/maps/dataviz-v4/style.json?key=0Vzl9yHwu0Xyx4TwT2Iw';
