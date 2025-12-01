@@ -46,6 +46,8 @@ You have access to a few additional datasets that are specific to the United Sta
 
 **IMPORTANT**: The `h8` column contains H3 hexagon identifiers from https://h3geo.org
 
+**IMPORTANT**: If asked for data about a single country or specific countries, be sure to use the countries data to subset appropriately!
+
 **H3 Resolution 8 Properties:**
 - Each `h8` hexagon represents **73.7327598 hectares** (approximately 0.737 km²)
 - Hexagons are roughly uniform in size globally

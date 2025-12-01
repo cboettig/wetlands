@@ -20,7 +20,8 @@ class WetlandsChatbot {
         this.messages = [];
         this.mcpClient = null;
         this.mcpTools = [];
-        this.selectedModel = config.llm_model || 'glm-4.6'; // Default model
+        this.selectedModel = config.llm_model || 'kimi'; // Default model
+        this.lastSqlQuery = null; // Track the most recent SQL query executed
 
         this.initializeUI();
         this.loadSystemPrompt();
@@ -94,7 +95,7 @@ class WetlandsChatbot {
                     <option value="qwen3">Qwen3</option>
                     <option value="glm-v">GLM-V</option>
                     <option value="gemma">Gemma</option>
-                    <option value="kimi">Kimi</option>
+                    <option value="kimi" selected>Kimi</option>
                 </select>
             </div>
         `;
@@ -130,6 +131,9 @@ class WetlandsChatbot {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${role}`;
 
+        // Debug logging
+        console.log('[UI] Adding message, role:', role, 'has SQL:', !!metadata.sqlQuery);
+
         // Use marked.js for markdown rendering
         // Handle undefined/null/empty content
         const safeContent = content || '';
@@ -138,6 +142,7 @@ class WetlandsChatbot {
 
         // Add SQL query details if present
         if (metadata.sqlQuery) {
+            console.log('[UI] ✅ Appending SQL query details element');
             const detailsDiv = document.createElement('details');
             detailsDiv.style.marginTop = '10px';
             detailsDiv.style.fontSize = '12px';
@@ -162,6 +167,8 @@ class WetlandsChatbot {
             detailsDiv.appendChild(summaryDiv);
             detailsDiv.appendChild(codeDiv);
             messageDiv.appendChild(detailsDiv);
+        } else if (role === 'assistant') {
+            console.log('[UI] No SQL query in metadata - this is expected for clarifications/follow-ups without prior queries');
         }
 
         messagesDiv.appendChild(messageDiv);
@@ -201,6 +208,14 @@ class WetlandsChatbot {
             // Add assistant response (handle undefined/null)
             const finalResponse = result.response || "I received an empty response. Please try again.";
             const metadata = result.sqlQuery ? { sqlQuery: result.sqlQuery } : {};
+
+            // Debug logging for SQL query
+            if (result.sqlQuery) {
+                console.log('[Chat] ✅ SQL query captured for display:', result.sqlQuery.substring(0, 100) + '...');
+            } else {
+                console.log('[Chat] No SQL query to display (could be clarification, or no query executed yet)');
+            }
+
             this.addMessage('assistant', finalResponse, metadata);
             this.messages.push({ role: 'assistant', content: finalResponse });
 
@@ -323,8 +338,10 @@ class WetlandsChatbot {
 
             const functionArgs = JSON.parse(toolCall.function.arguments);
 
-            // Capture the SQL query
+            // Capture the SQL query AND store it at instance level for persistence
             sqlQuery = functionArgs.query;
+            this.lastSqlQuery = sqlQuery; // Store for entire conversation
+            console.log('[SQL] ✅ SQL query captured and stored:', sqlQuery ? sqlQuery.substring(0, 100) + '...' : 'NULL/UNDEFINED');
 
             console.log('[LLM] Parsed query argument length:', functionArgs.query?.length || 0);
 
@@ -369,8 +386,9 @@ class WetlandsChatbot {
                             toolCall.function.arguments = retryToolCall.function.arguments;
                             toolCall.id = retryToolCall.id;
                             Object.assign(functionArgs, retryArgs);
-                            // Update captured SQL query
+                            // Update captured SQL query at both levels
                             sqlQuery = retryArgs.query;
+                            this.lastSqlQuery = retryArgs.query;
                         } else {
                             console.error('[LLM] ❌ Retry failed - still no query argument');
                             throw new Error('LLM failed to provide SQL query after retry');
@@ -449,13 +467,14 @@ class WetlandsChatbot {
             if (!finalContent || finalContent.trim() === '') {
                 console.warn('[LLM] ⚠️  WARNING: LLM returned empty content after tool call');
                 console.log('[LLM] Tool result was:', queryResult.substring(0, 200));
-                console.log('[LLM] SQL query preserved for debugging:', sqlQuery.substring(0, 100) + '...');
+                console.log('[LLM] SQL query preserved for debugging:', sqlQuery ? sqlQuery.substring(0, 100) + '...' : 'NULL');
                 return {
                     response: 'I processed the query but had trouble generating a response. **Check the SQL query below** to see what was executed. The query ran successfully but I couldn\'t interpret the results. Please try rephrasing your question.',
                     sqlQuery: sqlQuery  // SQL query is preserved for UI display
                 };
             }
 
+            console.log('[SQL] ✅ Returning response with SQL query:', sqlQuery ? sqlQuery.substring(0, 100) + '...' : 'NULL');
             return {
                 response: finalContent,
                 sqlQuery: sqlQuery
@@ -472,13 +491,16 @@ class WetlandsChatbot {
             console.warn('[LLM] ⚠️  WARNING: LLM returned empty direct content');
             return {
                 response: 'I received your question but had trouble generating a response. Please try rephrasing or asking something else.',
-                sqlQuery: null
+                sqlQuery: this.lastSqlQuery // Preserve last SQL query if available
             };
         }
 
+        // For direct responses (no tool call), include last SQL if it exists
+        // This handles cases where the LLM asks follow-up questions after executing a query
+        console.log('[LLM] Last SQL query available:', !!this.lastSqlQuery);
         return {
             response: directContent,
-            sqlQuery: null
+            sqlQuery: this.lastSqlQuery // Include last SQL query if one was executed recently
         };
     }
 
