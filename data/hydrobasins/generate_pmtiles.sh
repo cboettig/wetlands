@@ -1,6 +1,7 @@
 #!/bin/bash
 # Script to generate PMTiles from HydroBasins GeoPackage
 # Requires: tippecanoe (https://github.com/felt/tippecanoe)
+# Requires: gdal/ogr2ogr for GeoPackage conversion
 
 set -e  # Exit on error
 
@@ -13,6 +14,12 @@ mkdir -p "$OUTPUT_DIR"
 echo "Starting PMTiles generation from $GPKG"
 echo "Output directory: $OUTPUT_DIR"
 echo ""
+
+# Check if GPKG exists
+if [ ! -f "$GPKG" ]; then
+    echo "Error: $GPKG not found!"
+    exit 1
+fi
 
 # Define zoom ranges for each level (coarser levels = lower max zoom)
 declare -A ZOOM_CONFIG=(
@@ -38,7 +45,8 @@ for level in {01..12}; do
     
     echo "Processing $LAYER (zoom range: $ZOOM)..."
     
-    # Generate PMTiles using tippecanoe
+    # Convert GeoPackage layer to GeoJSON and pipe to tippecanoe
+    ogr2ogr -f GeoJSON /vsistdout/ "$GPKG" "$LAYER" | \
     tippecanoe \
         --output="$OUTPUT" \
         --layer="$LAYER" \
@@ -50,9 +58,7 @@ for level in {01..12}; do
         --extend-zooms-if-still-dropping \
         --simplification=10 \
         --no-tile-size-limit \
-        --force \
-        "$GPKG" \
-        "$LAYER"
+        --force
     
     # Get file size for reporting
     SIZE=$(du -h "$OUTPUT" | cut -f1)
