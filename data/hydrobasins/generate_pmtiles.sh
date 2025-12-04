@@ -38,7 +38,7 @@ declare -A ZOOM_CONFIG=(
 )
 
 # Process each level
-for level in {01..12}; do
+for level in {01..09}; do
     LAYER="level_$level"
     OUTPUT="$OUTPUT_DIR/${LAYER}.pmtiles"
     ZOOM="${ZOOM_CONFIG[$LAYER]}"
@@ -67,13 +67,5 @@ for level in {01..12}; do
 done
 
 echo "PMTiles generation complete!"
-echo ""
-echo "Generated files:"
-ls -lh "$OUTPUT_DIR"/*.pmtiles
 
-echo ""
-echo "To serve locally for testing:"
-echo "  pmtiles serve $OUTPUT_DIR"
-echo ""
-echo "To upload to cloud storage, use:"
-echo "  aws s3 cp $OUTPUT_DIR/ s3://your-bucket/hydrobasins/ --recursive"
+"mc cp $OUTPUT_DIR/ s3://public-hydrobasins/ --recursive"

@@ -5,12 +5,12 @@ metadata:
   labels:
     app: mcp-server
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
-      maxSurge: 1
+      maxSurge: 2
   selector:
     matchLabels:
       app: mcp-server
@@ -42,11 +42,11 @@ spec:
         command: ["uvx", "mcp-server-motherduck", "--port", "8001", "--host", "127.0.0.1", "--db-path", ":memory:", "--transport", "sse"]
         resources:
           requests:
-            cpu: "12"
-            memory: "32Gi"
+            cpu: "1"
+            memory: "1Gi"
           limits:
-            cpu: "12"
-            memory: "32Gi"
+            cpu: "32"
+            memory: "120Gi"
       
       volumes:
       - name: nginx-config
