@@ -7,15 +7,15 @@ const map = new maplibregl.Map({
 });
 
 // Add error handlers for debugging
-map.on('error', function(e) {
+map.on('error', function (e) {
     console.error('Map error:', e);
 });
 
-map.on('styleimagemissing', function(e) {
+map.on('styleimagemissing', function (e) {
     console.warn('Style image missing:', e.id);
 });
 
-map.on('sourcedata', function(e) {
+map.on('sourcedata', function (e) {
     if (e.sourceId === 'wetlands-cog' && e.isSourceLoaded) {
         console.log('Wetlands source loaded');
     }
@@ -81,20 +81,13 @@ map.on('load', function () {
         // Set up wetlands layer toggle after layer is added
         const wetlandsCheckbox = document.getElementById('wetlands-layer');
         if (wetlandsCheckbox) {
-            wetlandsCheckbox.onclick = function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const visibility = map.getLayoutProperty('wetlands-layer', 'visibility');
-
-                if (visibility === 'visible' || !visibility) {
-                    map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
-                    this.checked = false;
-                } else {
-                    this.checked = true;
+            wetlandsCheckbox.addEventListener('change', function () {
+                if (this.checked) {
                     map.setLayoutProperty('wetlands-layer', 'visibility', 'visible');
+                } else {
+                    map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
                 }
-            };
+            });
         }
     }).catch(error => {
         console.error('Error adding wetlands layer:', error);
