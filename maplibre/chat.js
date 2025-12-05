@@ -116,7 +116,13 @@ class WetlandsChatbot {
         });
 
         // Welcome message
-        this.addMessage('assistant', 'Hi! I can help you explore global wetlands data (GLWDv2.0). Try asking:\n\n* "How many hectares of peatlands are there?"\n* "What is the total area of freshwater wetlands in India?"\n* "Which wetlands have the highest carbon storage?"');
+        this.addMessage(
+            'assistant',
+            'Hi! I can help you explore global wetlands data (GLWDv2.0). Try asking:\n\n' +
+            '* "How many hectares of peatlands are there?"\n' +
+            '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
+            '* "Evaluate wetlands by Nature\'s Contributions to People (NCP) in Australia, broken down by region"'
+        );
     }
 
     toggleChat() {

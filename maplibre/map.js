@@ -1,21 +1,21 @@
 const map = new maplibregl.Map({
     container: 'map',
-    projection: 'globe',
+    // projection: 'globe',
     style: 'https://api.maptiler.com/maps/dataviz-v4/style.json?key=0Vzl9yHwu0Xyx4TwT2Iw',
     center: [0, 20],
     zoom: 1.5
 });
 
 // Add error handlers for debugging
-map.on('error', function(e) {
+map.on('error', function (e) {
     console.error('Map error:', e);
 });
 
-map.on('styleimagemissing', function(e) {
+map.on('styleimagemissing', function (e) {
     console.warn('Style image missing:', e.id);
 });
 
-map.on('sourcedata', function(e) {
+map.on('sourcedata', function (e) {
     if (e.sourceId === 'wetlands-cog' && e.isSourceLoaded) {
         console.log('Wetlands source loaded');
     }
@@ -78,23 +78,95 @@ map.on('load', function () {
 
         console.log('Wetlands layer added successfully');
 
+        // Add NCP biodiversity layer
+        map.addSource('ncp-cog', {
+            'type': 'raster',
+            'tiles': [
+                'https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=https://minio.carlboettiger.info/public-ncp/NCP_biod_nathab_cog.tif&rescale=0,19&colormap_name=viridis'
+            ],
+            'tileSize': 256,
+            'minzoom': 0,
+            'maxzoom': 12,
+            'attribution': '<a href="https://doi.org/10.1038/s41467-023-43832-9" target="_blank">Nature\'s Contributions to People</a>'
+        });
+
+        map.addLayer({
+            'id': 'ncp-layer',
+            'type': 'raster',
+            'source': 'ncp-cog',
+            'paint': {
+                'raster-opacity': 0.7
+            },
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+        console.log('NCP layer added successfully');
+
+        // Add vulnerable carbon layer
+        map.addSource('carbon-cog', {
+            'type': 'raster',
+            'tiles': [
+                'https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=https://minio.carlboettiger.info/public-carbon/cogs/vulnerable_c_total_2018.tif&colormap_name=reds'
+            ],
+            'tileSize': 256,
+            'minzoom': 0,
+            'maxzoom': 12,
+            'attribution': '<a href="https://www.conservation.org/irrecoverable-carbon" target="_blank">Irrecoverable Carbon (CI 2018)</a>'
+        });
+
+        map.addLayer({
+            'id': 'carbon-layer',
+            'type': 'raster',
+            'source': 'carbon-cog',
+            'paint': {
+                'raster-opacity': 0.7
+            },
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+        console.log('Carbon layer added successfully');
+
         // Set up wetlands layer toggle after layer is added
         const wetlandsCheckbox = document.getElementById('wetlands-layer');
+        const legend = document.getElementById('legend');
         if (wetlandsCheckbox) {
-            wetlandsCheckbox.onclick = function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const visibility = map.getLayoutProperty('wetlands-layer', 'visibility');
-
-                if (visibility === 'visible' || !visibility) {
-                    map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
-                    this.checked = false;
-                } else {
-                    this.checked = true;
+            wetlandsCheckbox.addEventListener('change', function () {
+                if (this.checked) {
                     map.setLayoutProperty('wetlands-layer', 'visibility', 'visible');
+                    legend.style.display = 'block';
+                } else {
+                    map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
+                    legend.style.display = 'none';
                 }
-            };
+            });
+        }
+
+        // Set up NCP layer toggle
+        const ncpCheckbox = document.getElementById('ncp-layer');
+        if (ncpCheckbox) {
+            ncpCheckbox.addEventListener('change', function () {
+                if (this.checked) {
+                    map.setLayoutProperty('ncp-layer', 'visibility', 'visible');
+                } else {
+                    map.setLayoutProperty('ncp-layer', 'visibility', 'none');
+                }
+            });
+        }
+
+        // Set up carbon layer toggle
+        const carbonCheckbox = document.getElementById('carbon-layer');
+        if (carbonCheckbox) {
+            carbonCheckbox.addEventListener('change', function () {
+                if (this.checked) {
+                    map.setLayoutProperty('carbon-layer', 'visibility', 'visible');
+                } else {
+                    map.setLayoutProperty('carbon-layer', 'visibility', 'none');
+                }
+            });
         }
     }).catch(error => {
         console.error('Error adding wetlands layer:', error);
@@ -105,13 +177,17 @@ map.on('load', function () {
 function switchBaseLayer(styleName) {
     const styleUrl = styleName === 'dark' ? darkStyleUrl : datavizStyleUrl;
 
-    // Store current wetlands layer state
+    // Store current layer states
     const wetlandsVisible = map.getLayer('wetlands-layer') ?
         map.getLayoutProperty('wetlands-layer', 'visibility') !== 'none' : true;
+    const ncpVisible = map.getLayer('ncp-layer') ?
+        map.getLayoutProperty('ncp-layer', 'visibility') !== 'none' : false;
+    const carbonVisible = map.getLayer('carbon-layer') ?
+        map.getLayoutProperty('carbon-layer', 'visibility') !== 'none' : false;
 
     map.setStyle(styleUrl);
 
-    // Re-add wetlands layer after style loads
+    // Re-add layers after style loads
     map.once('styledata', function () {
         map.addSource('wetlands-cog', {
             'type': 'raster',
@@ -136,6 +212,58 @@ function switchBaseLayer(styleName) {
         if (!wetlandsVisible) {
             map.setLayoutProperty('wetlands-layer', 'visibility', 'none');
             document.getElementById('wetlands-layer').checked = false;
+        }
+
+        // Re-add NCP layer
+        map.addSource('ncp-cog', {
+            'type': 'raster',
+            'tiles': [
+                'https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=https://minio.carlboettiger.info/public-ncp/NCP_biod_nathab_cog.tif&rescale=0,19&colormap_name=viridis'
+            ],
+            'tileSize': 256,
+            'minzoom': 0,
+            'maxzoom': 12,
+            'attribution': '<a href="https://doi.org/10.1038/s41467-023-43832-9" target="_blank">Nature\'s Contributions to People</a>'
+        });
+
+        map.addLayer({
+            'id': 'ncp-layer',
+            'type': 'raster',
+            'source': 'ncp-cog',
+            'paint': {
+                'raster-opacity': 0.7
+            }
+        });
+
+        if (!ncpVisible) {
+            map.setLayoutProperty('ncp-layer', 'visibility', 'none');
+            document.getElementById('ncp-layer').checked = false;
+        }
+
+        // Re-add carbon layer
+        map.addSource('carbon-cog', {
+            'type': 'raster',
+            'tiles': [
+                'https://titiler.nrp-nautilus.io/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=https://minio.carlboettiger.info/public-carbon/cogs/vulnerable_c_total_2018.tif&colormap_name=reds'
+            ],
+            'tileSize': 256,
+            'minzoom': 0,
+            'maxzoom': 12,
+            'attribution': '<a href="https://www.conservation.org/irrecoverable-carbon" target="_blank">Irrecoverable Carbon (CI 2018)</a>'
+        });
+
+        map.addLayer({
+            'id': 'carbon-layer',
+            'type': 'raster',
+            'source': 'carbon-cog',
+            'paint': {
+                'raster-opacity': 0.7
+            }
+        });
+
+        if (!carbonVisible) {
+            map.setLayoutProperty('carbon-layer', 'visibility', 'none');
+            document.getElementById('carbon-layer').checked = false;
         }
     });
 }

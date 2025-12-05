@@ -27,24 +27,19 @@
     <div id="map"></div>
     <div id="menu">
         <div class="menu-section">
-            <label class="section-title">Base Map</label>
-            <div class="radio-group">
-                <label>
-                    <input type="radio" name="basemap" value="dataviz" checked>
-                    <span>Dataviz</span>
-                </label>
-                <label>
-                    <input type="radio" name="basemap" value="dark">
-                    <span>Dark</span>
-                </label>
-            </div>
-        </div>
-        <div class="menu-section">
             <label class="section-title">Overlays</label>
             <div class="checkbox-group">
                 <label>
                     <input id="wetlands-layer" type="checkbox" name="rtoggle" value="wetlands" checked="checked">
                     <span>Global Wetlands</span>
+                </label>
+                <label>
+                    <input id="ncp-layer" type="checkbox" name="rtoggle" value="ncp">
+                    <span>Nature's Contributions</span>
+                </label>
+                <label>
+                    <input id="carbon-layer" type="checkbox" name="rtoggle" value="carbon">
+                    <span>Vulnerable Carbon</span>
                 </label>
             </div>
         </div>
