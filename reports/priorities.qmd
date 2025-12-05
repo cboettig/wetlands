@@ -1,0 +1,38 @@
+---
+
+---
+
+
+```{r}
+library(duckdbfs)
+library(dplyr)
+duckdb_secrets()
+
+glwd <- open_dataset("s3://public-wetlands/glwd/hex/**")
+glwd_code <- open_dataset("s3://public-wetlands/glwd/category_codes.csv", format = "csv", recursive = FALSE) |> rename(wetland_type = "name")
+countries <- open_dataset("s3://public-overturemaps/hex/countries.parquet", recursive = FALSE)
+regions <- open_dataset("s3://public-overturemaps/hex/regions/**")
+
+ncp_only <- open_dataset("s3://public-ncp/ncp_only/**")
+ncp_bio <- open_dataset("s3://public-ncp/ncp_biod_nathab/**")
+carbon <- open_dataset("s3://public-carbon/hex/vulnerable-carbon/**")
+
+hex_hectres <- 73.7327598 
+
+```
+
+
+```{r}
+countries |> 
+  filter(country == "IN") |>
+  inner_join(carbon) |> 
+  inner_join(glwd) |> 
+  inner_join(glwd_code) |> 
+  group_by(category) |> 
+  summarise(total_carbon = sum(carbon))
+```
+
+
+```{r}
+open_dataset("https://minio.carlboettiger.info/public-social-vulnerability/2022-tracts-h3-z8.parquet")
+```

@@ -77,27 +77,6 @@ Individual GeoParquet files for each hierarchical level, optimized for cloud-nat
 
 **Total GeoParquet Size:** ~3.8 GB (compressed)
 
-### PMTiles Files (level_*.pmtiles)
-
-Individual PMTiles files for each hierarchical level, optimized for web mapping and tile serving:
-
-| File Name           | Zoom Range | Feature Count | Use Case |
-|---------------------|------------|---------------|----------|
-| level_01.pmtiles    | 0-4        | 10            | Global/continental web maps |
-| level_02.pmtiles    | 0-5        | 62            | Continental basin visualization |
-| level_03.pmtiles    | 0-6        | 292           | Large regional web maps |
-| level_04.pmtiles    | 0-7        | 1,342         | Regional web mapping |
-| level_05.pmtiles    | 0-8        | 4,734         | Sub-regional web maps |
-| level_06.pmtiles    | 0-9        | 16,397        | Watershed web visualization |
-| level_07.pmtiles    | 0-10       | 57,646        | Detailed web maps |
-| level_08.pmtiles    | 0-11       | 190,675       | High-detail web mapping |
-| level_09.pmtiles    | 0-12       | 508,190       | Very detailed web maps |
-| level_10.pmtiles    | 0-13       | 941,012       | Maximum detail web maps |
-| level_11.pmtiles    | 0-14       | 1,031,785     | Ultra-high resolution web maps |
-| level_12.pmtiles    | 0-14       | 1,034,083     | Finest resolution web maps |
-
-PMTiles is a cloud-native archive format for tiled map data, enabling efficient serverless map tile hosting.
-
 ### Source Shapefiles
 
 The original downloaded shapefiles are organized in continent-specific subdirectories:
@@ -188,43 +167,6 @@ basins <- st_read("combined_hydrobasins.gpkg", layer = "level_06")
 # Read from GeoParquet
 library(arrow)
 basins <- read_parquet("level_06.parquet") %>% st_as_sf()
-```
-
-### Display PMTiles in Web Map
-```html
-<!-- Using MapLibre GL JS -->
-<script src="https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.js"></script>
-<script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
-
-<script>
-let protocol = new pmtiles.Protocol();
-maplibregl.addProtocol("pmtiles", protocol.tile);
-
-const map = new maplibregl.Map({
-  container: 'map',
-  style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  center: [0, 20],
-  zoom: 2
-});
-
-map.on('load', () => {
-  map.addSource('hydrobasins', {
-    type: 'vector',
-    url: 'pmtiles://https://your-domain.com/level_06.pmtiles'
-  });
-  
-  map.addLayer({
-    id: 'basins',
-    type: 'line',
-    source: 'hydrobasins',
-    'source-layer': 'level_06',
-    paint: {
-      'line-color': '#0080ff',
-      'line-width': 1
-    }
-  });
-});
-</script>
 ```
 
 ### Query with DuckDB
