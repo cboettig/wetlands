@@ -6,7 +6,7 @@
 ```{r}
 library(duckdbfs)
 library(dplyr)
-duckdb_secrets()
+duckdb_secrets(key="", secret="", endpoint = "minio.carlboettiger.info")
 
 glwd <- open_dataset("s3://public-wetlands/glwd/hex/**")
 glwd_code <- open_dataset("s3://public-wetlands/glwd/category_codes.csv", format = "csv", recursive = FALSE) |> rename(wetland_type = "name")
@@ -21,6 +21,7 @@ hex_hectres <- 73.7327598
 
 ```
 
+## Ex: Carbon in Wetland Categories in India:
 
 ```{r}
 countries |> 
@@ -32,6 +33,3 @@ countries |>
   summarise(total_carbon = sum(carbon))
 ```
 
-```{r}
-carbon |> summarise(min = min(carbon), max=max(carbon))
-```
