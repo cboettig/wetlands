@@ -34,7 +34,15 @@ You have access to these primary datasets via SQL queries:
    - Columns: id (overturemaps unique id), country (two-letter ISO country code), name (Name for country), h8 (H3 hex ID), h0 (coarse h3 ID)
    - Use this dataset to identify what country any h8 hex belongs, or to filter or group any of the global data to specific countries. 
    - Derived from Overturemaps data, July 2025
+
+4. **H3-indexed Regional Polygons** (`s3://public-overturemaps/hex/regions/**`)
+   - Columns: id (overturemaps unique id), country (two-letter ISO country code), region, name (Name for region), h8 (H3 hex ID), h0 (coarse h3 ID)
+   - Contains all regions (sub-divisions of a country, i.e. in the case of the US the States are regions). 
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
+   - Derived from Overturemaps data, July 2025
+
+
+
 
 You have access to a few additional datasets that are specific to the United States
 
