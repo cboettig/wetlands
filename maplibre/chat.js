@@ -301,7 +301,7 @@ class WetlandsChatbot {
         console.log('[LLM] Converted tools:', JSON.stringify(tools, null, 2));
 
         let toolCallCount = 0;
-        const MAX_TOOL_CALLS = 5; // Guardrail: Allow up to 5 tool calls per user message
+        const MAX_TOOL_CALLS = 8; // Guardrail: Allow up to 8 tool calls per user message
 
         while (toolCallCount < MAX_TOOL_CALLS) {
             const requestPayload = {

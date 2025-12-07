@@ -198,6 +198,72 @@ map.on('load', function () {
 
         console.log('Ramsar layer added successfully');
 
+        // Add WDPA protected areas PMTiles layer
+        map.addSource('wdpa-source', {
+            'type': 'vector',
+            'url': 'pmtiles://https://s3-west.nrp-nautilus.io/public-wdpa/WDPA_Dec2025.pmtiles',
+            'attribution': '<a href="https://www.protectedplanet.net/" target="_blank">World Database on Protected Areas</a>'
+        });
+
+        map.addLayer({
+            'id': 'wdpa-layer',
+            'type': 'fill',
+            'source': 'wdpa-source',
+            'source-layer': 'wdpa',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'fill-color': '#2E7D32',
+                'fill-opacity': 0.4
+            },
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+        map.addLayer({
+            'id': 'wdpa-outline',
+            'type': 'line',
+            'source': 'wdpa-source',
+            'source-layer': 'wdpa',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'line-color': '#1B5E20',
+                'line-width': 1.5
+            },
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+        // Add click popup for WDPA sites
+        map.on('click', 'wdpa-layer', (e) => {
+            const coordinates = e.lngLat;
+            const properties = e.features[0].properties;
+
+            new maplibregl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(`
+                    <strong>${properties.NAME_ENG || properties.NAME || 'Protected Area'}</strong><br>
+                    ${properties.DESIG_ENG ? 'Type: ' + properties.DESIG_ENG + '<br>' : ''}
+                    ${properties.IUCN_CAT ? 'IUCN Category: ' + properties.IUCN_CAT + '<br>' : ''}
+                    ${properties.GIS_AREA ? 'Area: ' + properties.GIS_AREA + ' km²<br>' : ''}
+                    ${properties.STATUS_YR ? 'Year: ' + properties.STATUS_YR + '<br>' : ''}
+                `)
+                .addTo(map);
+        });
+
+        // Change cursor on hover
+        map.on('mouseenter', 'wdpa-layer', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'wdpa-layer', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+        console.log('WDPA layer added successfully');
+
         // Set up wetlands layer toggle after layer is added
         const wetlandsCheckbox = document.getElementById('wetlands-layer');
         const legend = document.getElementById('legend');
@@ -246,6 +312,16 @@ map.on('load', function () {
                 map.setLayoutProperty('ramsar-outline', 'visibility', visibility);
             });
         }
+
+        // Set up WDPA layer toggle
+        const wdpaCheckbox = document.getElementById('wdpa-layer');
+        if (wdpaCheckbox) {
+            wdpaCheckbox.addEventListener('change', function () {
+                const visibility = this.checked ? 'visible' : 'none';
+                map.setLayoutProperty('wdpa-layer', 'visibility', visibility);
+                map.setLayoutProperty('wdpa-outline', 'visibility', visibility);
+            });
+        }
     }).catch(error => {
         console.error('Error adding wetlands layer:', error);
     });
@@ -265,6 +341,9 @@ function switchBaseLayer(styleName) {
     const ramsarVisible = map.getLayer('ramsar-layer') ?
         map.getLayoutProperty('ramsar-layer', 'visibility') !== 'none' : false;
     const ramsarOutlineVisible = ramsarVisible;
+    const wdpaVisible = map.getLayer('wdpa-layer') ?
+        map.getLayoutProperty('wdpa-layer', 'visibility') !== 'none' : false;
+    const wdpaOutlineVisible = wdpaVisible;
 
     map.setStyle(styleUrl);
 
@@ -384,6 +463,45 @@ function switchBaseLayer(styleName) {
             map.setLayoutProperty('ramsar-layer', 'visibility', 'none');
             map.setLayoutProperty('ramsar-outline', 'visibility', 'none');
             document.getElementById('ramsar-layer').checked = false;
+        }
+
+        // Re-add WDPA layer
+        map.addSource('wdpa-source', {
+            'type': 'vector',
+            'url': 'pmtiles://https://s3-west.nrp-nautilus.io/public-wdpa/WDPA_Dec2025.pmtiles',
+            'attribution': '<a href="https://www.protectedplanet.net/" target="_blank">World Database on Protected Areas</a>'
+        });
+
+        map.addLayer({
+            'id': 'wdpa-layer',
+            'type': 'fill',
+            'source': 'wdpa-source',
+            'source-layer': 'wdpa',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'fill-color': '#2E7D32',
+                'fill-opacity': 0.4
+            }
+        });
+
+        map.addLayer({
+            'id': 'wdpa-outline',
+            'type': 'line',
+            'source': 'wdpa-source',
+            'source-layer': 'wdpa',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'line-color': '#1B5E20',
+                'line-width': 1.5
+            }
+        });
+
+        if (!wdpaVisible) {
+            map.setLayoutProperty('wdpa-layer', 'visibility', 'none');
+            map.setLayoutProperty('wdpa-outline', 'visibility', 'none');
+            document.getElementById('wdpa-layer').checked = false;
         }
     });
 }

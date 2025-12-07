@@ -59,6 +59,17 @@ You have access to these primary datasets via SQL queries:
    - Additional site details available at `s3://public-wetlands/ramsar/site-details.parquet` - join on `ramsarid` column
    - Site details include: designation date, latitude/longitude, Ramsar criteria (1-9), wetland types, elevation, Montreux status, management plans, ecosystem services, threats, conservation designations, annotated summaries, and more
    - Derived from the Ramsar Sites Information Service, <https://rsis.ramsar.org/>
+   
+   **Ramsar Criteria for Identifying Wetlands of International Importance:**
+   - **Criterion 1**: Representative, rare, or unique wetland type within a biogeographic region
+   - **Criterion 2**: Supports vulnerable, endangered, or critically endangered species or threatened ecological communities
+   - **Criterion 3**: Supports populations important for maintaining biological diversity of a biogeographic region
+   - **Criterion 4**: Supports species at critical life cycle stages or provides refuge during adverse conditions
+   - **Criterion 5**: Regularly supports 20,000 or more waterbirds
+   - **Criterion 6**: Regularly supports 1% of a population of one waterbird species or subspecies
+   - **Criterion 7**: Supports significant proportion of indigenous fish subspecies/species/families contributing to global biological diversity
+   - **Criterion 8**: Important source of food for fishes, spawning ground, nursery, and/or migration path
+   - **Criterion 9**: Regularly supports 1% of a population of one wetland-dependent non-avian animal species or subspecies
 
 
 You have access to a few additional datasets that are specific to the United States
