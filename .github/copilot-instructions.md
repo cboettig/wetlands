@@ -41,8 +41,24 @@ You have access to these primary datasets via SQL queries:
 
 5. **Nature's Contributions to People** (`s3://public-ncp/hex/ncp_biod_nathab/**`)
    - Columns: ncp (a score between 0 and 1 representing greatest contributions to least) h8 (H3 hex ID), h0 hex id. 
-   - Derived from "Mapping the planet’s critical areas for biodiversity and nature’s contributions to people", <https://doi.org/10.1038/s41467-023-43832-9>
+   - Derived from "Mapping the planet's critical areas for biodiversity and nature's contributions to people", <https://doi.org/10.1038/s41467-023-43832-9>
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
+
+6. **World Protected Areas Database** (`s3://public-wdpa/hex/**`)
+   - Columns: OBJECTID, SITE_ID, SITE_PID, SITE_TYPE, NAME_ENG, NAME, DESIG, DESIG_ENG, DESIG_TYPE, IUCN_CAT, INT_CRIT, REALM, REP_M_AREA, GIS_M_AREA, REP_AREA, GIS_AREA, NO_TAKE, NO_TK_AREA, STATUS, STATUS_YR, GOV_TYPE, GOVSUBTYPE, OWN_TYPE, OWNSUBTYPE, MANG_AUTH, MANG_PLAN, VERIF, METADATAID, PRNT_ISO3, ISO3, SUPP_INFO, CONS_OBJ, INLND_WTRS, OECM_ASMT, SHAPE_bbox, h8 (H3 hex ID), h0 (coarse hex ID)
+   - Global coverage of protected areas indexed by H3 hexagons at resolution 8
+   - Key columns: NAME_ENG (English name), DESIG_ENG (designation type in English), IUCN_CAT (IUCN category), STATUS (current status), GIS_AREA (area in km²), ISO3 (country code)
+   - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
+   - Derived from the World Database on Protected Areas (WDPA), <https://www.protectedplanet.net/>
+
+7. **Ramsar Sites - Wetlands of International Importance** (`s3://public-wetlands/ramsar/hex/**`)
+   - Columns: v_idris (unique ID), ramsarid (Ramsar site ID), officialna (official site name), iso3 (ISO 3-letter country code), country_en (country name in English), area_off (official area in hectares), h8 (H3 hex ID), h0 (coarse hex ID)
+   - Global coverage of Ramsar Convention sites indexed by H3 hexagons at resolution 8
+   - Key columns: officialna (site name), country_en (country), area_off (designated area in hectares), ramsarid (unique Ramsar identifier)
+   - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
+   - Additional site details available at `s3://public-wetlands/ramsar/site-details.parquet` - join on `ramsarid` column
+   - Site details include: designation date, latitude/longitude, Ramsar criteria (1-9), wetland types, elevation, Montreux status, management plans, ecosystem services, threats, conservation designations, annotated summaries, and more
+   - Derived from the Ramsar Sites Information Service, <https://rsis.ramsar.org/>
 
 
 You have access to a few additional datasets that are specific to the United States
@@ -134,6 +150,7 @@ CREATE OR REPLACE SECRET s3 (
 5. **Join carefully** - Use `h8` column to join datasets; watch for case sensitivity
 6. **Limit results** - Use LIMIT for exploratory queries to keep responses manageable
 7. **Format numbers** - Round area calculations to appropriate precision (e.g., 2 decimal places for km²)
+8. **Use Regions Only When Asked** - Do not group by region unless the user explicitly asks for a regional breakdown. Default to country-level or global aggregation.
 
 ## Example Queries
 
@@ -190,6 +207,26 @@ SELECT
     ROUND(total_hexagons * 0.284679, 2) as total_sq_miles
 FROM read_parquet('s3://public-wetlands/glwd/hex/**')
 WHERE Z BETWEEN 22 AND 27;
+```
+
+**Evaluate wetlands by Nature's Contributions to People (NCP) in Australia, broken down by region:**
+```sql
+SET THREADS=100;
+INSTALL httpfs; LOAD httpfs;
+CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'minio.carlboettiger.info', URL_STYLE 'path');
+
+SELECT 
+    r.name as region_name,
+    COUNT(*) as wetland_hex_count,
+    ROUND(COUNT(*) * 73.7327598, 2) as wetland_area_hectares,
+    ROUND(AVG(n.ncp), 3) as avg_ncp_score
+FROM read_parquet('s3://public-overturemaps/hex/regions/**') r
+JOIN read_parquet('s3://public-wetlands/glwd/hex/**') w ON r.h8 = w.h8 AND r.h0 = w.h0
+JOIN read_parquet('s3://public-ncp/hex/ncp_biod_nathab/**') n ON w.h8 = n.h8 AND w.h0 = n.h0
+WHERE r.country = 'AU'
+GROUP BY r.name
+ORDER BY avg_ncp_score DESC
+LIMIT 10;
 ```
 
 ## Your Role
