@@ -1,3 +1,7 @@
+// Register PMTiles protocol
+let protocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
+
 const map = new maplibregl.Map({
     container: 'map',
     // projection: 'globe',
@@ -130,6 +134,70 @@ map.on('load', function () {
 
         console.log('Carbon layer added successfully');
 
+        // Add Ramsar sites PMTiles layer
+        map.addSource('ramsar-source', {
+            'type': 'vector',
+            'url': 'pmtiles://https://minio.carlboettiger.info/public-wetlands/ramsar/ramsar_wetlands.pmtiles',
+            'attribution': '<a href="https://rsis.ramsar.org/" target="_blank">Ramsar Sites Information Service</a>'
+        });
+
+        map.addLayer({
+            'id': 'ramsar-layer',
+            'type': 'fill',
+            'source': 'ramsar-source',
+            'source-layer': 'ramsar',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'fill-color': '#FF1493',
+                'fill-opacity': 0.6
+            },
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+        map.addLayer({
+            'id': 'ramsar-outline',
+            'type': 'line',
+            'source': 'ramsar-source',
+            'source-layer': 'ramsar',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'line-color': '#8B008B',
+                'line-width': 2
+            },
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+        // Add click popup for Ramsar sites
+        map.on('click', 'ramsar-layer', (e) => {
+            const coordinates = e.lngLat;
+            const properties = e.features[0].properties;
+
+            new maplibregl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(`
+                    <strong>${properties.officialna || 'Ramsar Site'}</strong><br>
+                    ${properties.country_en ? 'Country: ' + properties.country_en + '<br>' : ''}
+                    ${properties.area_off ? 'Area: ' + properties.area_off + ' ha<br>' : ''}
+                `)
+                .addTo(map);
+        });
+
+        // Change cursor on hover
+        map.on('mouseenter', 'ramsar-layer', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'ramsar-layer', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+        console.log('Ramsar layer added successfully');
+
         // Set up wetlands layer toggle after layer is added
         const wetlandsCheckbox = document.getElementById('wetlands-layer');
         const legend = document.getElementById('legend');
@@ -168,6 +236,16 @@ map.on('load', function () {
                 }
             });
         }
+
+        // Set up Ramsar layer toggle
+        const ramsarCheckbox = document.getElementById('ramsar-layer');
+        if (ramsarCheckbox) {
+            ramsarCheckbox.addEventListener('change', function () {
+                const visibility = this.checked ? 'visible' : 'none';
+                map.setLayoutProperty('ramsar-layer', 'visibility', visibility);
+                map.setLayoutProperty('ramsar-outline', 'visibility', visibility);
+            });
+        }
     }).catch(error => {
         console.error('Error adding wetlands layer:', error);
     });
@@ -184,6 +262,9 @@ function switchBaseLayer(styleName) {
         map.getLayoutProperty('ncp-layer', 'visibility') !== 'none' : false;
     const carbonVisible = map.getLayer('carbon-layer') ?
         map.getLayoutProperty('carbon-layer', 'visibility') !== 'none' : false;
+    const ramsarVisible = map.getLayer('ramsar-layer') ?
+        map.getLayoutProperty('ramsar-layer', 'visibility') !== 'none' : false;
+    const ramsarOutlineVisible = ramsarVisible;
 
     map.setStyle(styleUrl);
 
@@ -264,6 +345,45 @@ function switchBaseLayer(styleName) {
         if (!carbonVisible) {
             map.setLayoutProperty('carbon-layer', 'visibility', 'none');
             document.getElementById('carbon-layer').checked = false;
+        }
+
+        // Re-add Ramsar layer
+        map.addSource('ramsar-source', {
+            'type': 'vector',
+            'url': 'pmtiles://https://minio.carlboettiger.info/public-wetlands/ramsar/ramsar_wetlands.pmtiles',
+            'attribution': '<a href="https://rsis.ramsar.org/" target="_blank">Ramsar Sites Information Service</a>'
+        });
+
+        map.addLayer({
+            'id': 'ramsar-layer',
+            'type': 'fill',
+            'source': 'ramsar-source',
+            'source-layer': 'ramsar',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'fill-color': '#FF1493',
+                'fill-opacity': 0.6
+            }
+        });
+
+        map.addLayer({
+            'id': 'ramsar-outline',
+            'type': 'line',
+            'source': 'ramsar-source',
+            'source-layer': 'ramsar',
+            'minzoom': 0,
+            'maxzoom': 22,
+            'paint': {
+                'line-color': '#8B008B',
+                'line-width': 2
+            }
+        });
+
+        if (!ramsarVisible) {
+            map.setLayoutProperty('ramsar-layer', 'visibility', 'none');
+            map.setLayoutProperty('ramsar-outline', 'visibility', 'none');
+            document.getElementById('ramsar-layer').checked = false;
         }
     });
 }
