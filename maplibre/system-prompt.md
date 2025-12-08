@@ -50,14 +50,25 @@ You have access to these primary datasets via SQL queries:
    - Key columns: NAME_ENG (English name), DESIG_ENG (designation type in English), IUCN_CAT (IUCN category), STATUS (current status), GIS_AREA (area in km²), ISO3 (country code)
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
    - Derived from the World Database on Protected Areas (WDPA), <https://www.protectedplanet.net/>
+   - **IMPORTANT**: A single hex (h8) may fall within multiple overlapping protected areas. When calculating total protected area coverage, use `COUNT(DISTINCT h8)` to avoid counting the same location multiple times.
+   
+   **IUCN Protected Area Management Categories (IUCN_CAT):**
+   - **Ia**: Strict Nature Reserve - Managed mainly for science; strict protection with minimal human visitation
+   - **Ib**: Wilderness Area - Large unmodified/slightly modified areas, retained in natural condition, managed to preserve natural state
+   - **II**: National Park - Large natural/near-natural areas set aside to protect large-scale ecological processes with recreation opportunities
+   - **III**: Natural Monument or Feature - Set aside to protect specific natural monument (geological formation, sea mount, cave, etc.)
+   - **IV**: Habitat/Species Management Area - Area where management interventions are required to maintain habitats or meet requirements of specific species
+   - **V**: Protected Landscape/Seascape - Areas where interaction of people and nature has produced significant cultural, ecological and/or aesthetic value
+   - **VI**: Protected Area with Sustainable Use of Natural Resources - Conserve ecosystems while allowing sustainable natural resource management
+   - **Not Reported/Not Applicable/Not Assigned**: Protected area exists but IUCN category not assigned
 
 7. **Ramsar Sites - Wetlands of International Importance** (`s3://public-wetlands/ramsar/hex/**`)
-   - Columns: v_idris (unique ID), ramsarid (Ramsar site ID), officialna (official site name), iso3 (ISO 3-letter country code), country_en (country name in English), area_off (official area in hectares), h8 (H3 hex ID), h0 (coarse hex ID)
+   - Columns: ramsarid (Ramsar site ID), officialna (official site name), iso3 (ISO 3-letter country code), country_en (country name in English), area_off (official area in hectares), h8 (H3 hex ID), h0 (coarse hex ID).  For additional information, use the site-details.parquet (join my ramsarid) mentioned below.
    - Global coverage of Ramsar Convention sites indexed by H3 hexagons at resolution 8
    - Key columns: officialna (site name), country_en (country), area_off (designated area in hectares), ramsarid (unique Ramsar identifier)
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
    - Additional site details available at `s3://public-wetlands/ramsar/site-details.parquet` - join on `ramsarid` column
-   - Site details include: designation date, latitude/longitude, Ramsar criteria (1-9), wetland types, elevation, Montreux status, management plans, ecosystem services, threats, conservation designations, annotated summaries, and more
+   - Site details columns: `ramsarid` (join key), `Site name`, `Region`, `Country`, `Territory`, `Designation date`, `Last publication date`, `Area (ha)`, `Latitude`, `Longitude`, `Annotated summary`, `Criterion1`-`Criterion9` (boolean flags for each Ramsar criterion), `Wetland Type`, `Maximum elevation`, `Minimum elevation`, `Montreux listed`, `Management plan implemented`, `Management plan available`, `Ecosystem services`, `Threats`, `large administrative region`, `Global international legal designations`, `Regional international legal designations`, `National conservation designation`, `Does the wetland extend onto the territory of one or more other countries?`, `Ramsar Advisory Mission?`
    - Derived from the Ramsar Sites Information Service, <https://rsis.ramsar.org/>
    
    **Ramsar Criteria for Identifying Wetlands of International Importance:**
@@ -70,6 +81,15 @@ You have access to these primary datasets via SQL queries:
    - **Criterion 7**: Supports significant proportion of indigenous fish subspecies/species/families contributing to global biological diversity
    - **Criterion 8**: Important source of food for fishes, spawning ground, nursery, and/or migration path
    - **Criterion 9**: Regularly supports 1% of a population of one wetland-dependent non-avian animal species or subspecies
+
+
+8. **HydroBASINS Level 6 Watersheds** (`s3://public-hydrobasins/level_06/hexes/**`)
+   - Columns: id (basin ID), PFAF_ID (Pfafstetter code), UP_AREA (upstream drainage area in km²), SUB_AREA (sub-basin area in km²), MAIN_BAS (main basin ID), h8 (H3 hex ID), h0 (coarse hex ID)
+   - Global coverage of level 6 watershed basins indexed by H3 hexagons at resolution 8
+   - Key columns: id (unique basin identifier), PFAF_ID (hierarchical Pfafstetter coding system), UP_AREA (total upstream drainage area), SUB_AREA (area of the sub-basin itself)
+   - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
+   - Use this dataset to analyze wetlands within specific watersheds, calculate drainage basin statistics, or understand hydrological connectivity
+   - Derived from HydroBASINS, <https://www.hydrosheds.org/products/hydrobasins>
 
 
 You have access to a few additional datasets that are specific to the United States
