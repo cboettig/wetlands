@@ -63,6 +63,7 @@ composite_score = (
 ```{r setup, message=FALSE, warning=FALSE}
 library(duckdbfs)
 library(dplyr)
+library(dbplyr)
 library(ggplot2)
 library(tidyr)
 
