@@ -1,6 +1,6 @@
 ---
 title: "Priority Watersheds for Wetland Conservation"
-format: html
+format: gfm
 ---
 
 ## Priority Watershed Analysis Methodology
@@ -63,6 +63,7 @@ composite_score = (
 ```{r setup, message=FALSE, warning=FALSE}
 library(duckdbfs)
 library(dplyr)
+library(dbplyr)
 library(ggplot2)
 library(tidyr)
 
@@ -132,9 +133,9 @@ analyze_hydrobasins_for_country <- function(
             wetland_hex_count = n_distinct(h8),
             # B. Total carbon
             total_carbon = round(coalesce(sum(carbon, na.rm = TRUE), 0), 2),
-            # C. Protected fraction
+            # C. Protected fraction (count distinct protected hexes, not total WDPA rows)
             protected_fraction = round(
-                sum(!is.na(wdpa_present)) / n_distinct(h8),
+                n_distinct(h8[!is.na(wdpa_present)]) / n_distinct(h8),
                 3
             ),
             # D. Average NCP score
@@ -334,6 +335,9 @@ cat("\nResults saved to: priority_hydrobasins_results_r.csv\n")
 ## Visualization: Comparative Analysis
 
 ```{r fig.width=14, fig.height=10}
+# Reset graphics device to avoid API mismatch
+if (dev.cur() > 1) dev.off()
+
 # Create comparison plots
 library(patchwork)
 
@@ -421,6 +425,9 @@ ggsave(
 ## Composite Score Distribution
 
 ```{r fig.width=12, fig.height=6}
+# Reset graphics device
+if (dev.cur() > 1) dev.off()
+
 all_results |>
     ggplot(aes(
         x = reorder(country, composite_score, FUN = median),
