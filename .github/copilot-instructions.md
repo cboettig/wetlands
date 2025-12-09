@@ -21,6 +21,7 @@ You have access to these primary datasets via SQL queries:
    - Derived from the Global Lakes and Wetlands Database (v2), <https://www.hydrosheds.org/products/glwd>
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
    - NOTE: JOIN the wetlands data to category codes to access descriptions of the wetland types, `s3://public-wetlands/glwd/category_codes.csv`.  Columns are Z (wetland code, integer), name (short description), description (name and color code on map), and category (the 7 general categories of wetland type).
+   - **CRITICAL**: A single hex (h8) can have multiple wetland type codes (Z values), meaning the same location may appear in multiple rows if it contains different wetland types. When counting hexagons, ALWAYS use `COUNT(DISTINCT h8)` to avoid counting the same location multiple times. A single hex can have up to 8 different wetland categories.
    
 2. **Global Vulnerable Carbon** (`s3://public-carbon/hex/vulnerable-carbon/**`)
    - Columns: carbon (carbon storage) h8 (H3 hex ID), also columns representing coarser hex ID zooms, h0 - h7
