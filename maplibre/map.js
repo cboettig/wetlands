@@ -32,6 +32,7 @@ const datavizStyleUrl = 'https://api.maptiler.com/maps/dataviz-v4/style.json?key
 // Layer configuration management
 let layerConfig = null;
 let configChecksum = null;
+let pendingConfig = null; // Track config waiting to be applied when map is ready
 let userOverrides = {}; // Track which layers user has manually toggled
 
 // Configuration source - can be local or S3
@@ -50,13 +51,13 @@ async function loadLayerConfig() {
         const newChecksum = JSON.stringify(config);
 
         if (newChecksum !== configChecksum) {
-            console.log('Config changed! Applying new config:', config);
+            console.log('Config changed! New config:', config);
             configChecksum = newChecksum;
             layerConfig = config;
+            pendingConfig = config; // Mark as pending until successfully applied
             // Clear user overrides when config changes - new config takes precedence
             userOverrides = {};
             applyLayerConfig();
-            console.log('Layer configuration loaded and applied:', config);
         } else {
             console.log('Config unchanged (checksum match)');
         }
@@ -67,8 +68,9 @@ async function loadLayerConfig() {
 
 // Apply the layer configuration to the map
 function applyLayerConfig() {
-    if (!layerConfig) {
-        console.log('applyLayerConfig skipped - no layerConfig');
+    // If there's no pending config, nothing to do
+    if (!pendingConfig) {
+        console.log('applyLayerConfig skipped - no pending config');
         return;
     }
 
@@ -78,27 +80,17 @@ function applyLayerConfig() {
         return;
     }
 
-    // Check if style is loaded - if not, wait for it
-    if (!map.isStyleLoaded()) {
-        console.log('applyLayerConfig waiting - style not loaded yet, will retry when style loads');
-        // Set up one-time listener for when style is loaded
-        map.once('styledata', () => {
-            console.log('Style loaded, retrying applyLayerConfig');
-            applyLayerConfig();
-        });
-        return;
-    }
-
-    // Check if layers exist yet
+    // Check if our custom layers have been added to the map
+    // This is the only check we really need - if layers exist, we can change their visibility
     if (!map.getLayer('wetlands-layer')) {
-        console.log('applyLayerConfig skipped - layers not added to map yet, will retry on next poll');
+        console.log('applyLayerConfig waiting - layers not added to map yet, will retry on next poll');
         return;
     }
 
-    console.log('✓ Applying layer config:', layerConfig);
+    console.log('✓ Applying layer config:', pendingConfig);
     const legend = document.getElementById('legend');
 
-    Object.entries(layerConfig.layers).forEach(([layerId, visible]) => {
+    Object.entries(pendingConfig.layers).forEach(([layerId, visible]) => {
         console.log(`  Processing ${layerId}: visible=${visible}, userOverride=${userOverrides[layerId]}`);
 
         // Skip if user has manually overridden this layer
@@ -144,6 +136,10 @@ function applyLayerConfig() {
             checkbox.checked = visible;
         }
     });
+
+    // Clear pending config after successful application
+    console.log('✅ Layer configuration successfully applied');
+    pendingConfig = null;
 }
 
 // Note: Polling is started after map loads, see below
