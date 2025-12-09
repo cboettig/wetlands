@@ -67,21 +67,37 @@ async function loadLayerConfig() {
 
 // Apply the layer configuration to the map
 function applyLayerConfig() {
-    if (!layerConfig || !map.loaded()) {
+    if (!layerConfig) {
+        console.log('applyLayerConfig skipped - no layerConfig');
         return;
     }
 
+    // Check if map and style are loaded
+    if (!map || !map.isStyleLoaded()) {
+        console.log('applyLayerConfig skipped - map or style not loaded yet');
+        return;
+    }
+
+    // Check if layers exist yet
+    if (!map.getLayer('wetlands-layer')) {
+        console.log('applyLayerConfig skipped - layers not added to map yet');
+        return;
+    }
+
+    console.log('✓ Applying layer config:', layerConfig);
     const legend = document.getElementById('legend');
 
     Object.entries(layerConfig.layers).forEach(([layerId, visible]) => {
+        console.log(`  Processing ${layerId}: visible=${visible}, userOverride=${userOverrides[layerId]}`);
+
         // Skip if user has manually overridden this layer
         if (userOverrides[layerId] !== undefined) {
+            console.log(`  → Skipping ${layerId} - user override active`);
             return;
         }
 
         const visibility = visible ? 'visible' : 'none';
-
-        // Handle different layer types
+        console.log(`  → Setting ${layerId} to ${visibility}`);        // Handle different layer types
         if (layerId === 'wetlands-layer') {
             if (map.getLayer('wetlands-layer')) {
                 map.setLayoutProperty('wetlands-layer', 'visibility', visibility);

@@ -142,6 +142,6 @@ if __name__ == "__main__":
         carbon=True,
         ncp=False,
         ramsar=False,
-        wdpa=False,
+        wdpa=True,
         hydrobasins=False
     )
