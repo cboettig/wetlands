@@ -86,7 +86,7 @@ function applyLayerConfig() {
             if (map.getLayer('wetlands-layer')) {
                 map.setLayoutProperty('wetlands-layer', 'visibility', visibility);
                 if (legend) {
-                    legend.style.display = settings.visible ? 'block' : 'none';
+                    legend.style.display = visible ? 'block' : 'none';
                 }
             }
         } else if (layerId === 'ramsar-layer') {

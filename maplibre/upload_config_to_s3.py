@@ -136,9 +136,9 @@ COPY (
 
 if __name__ == "__main__":
     # Example: Show wetlands and carbon layers
-    print("Example 1: Wetlands + Carbon analysis\n")
+    print("Example 1: Carbon analysis\n")
     upload_config_via_duckdb(
-        wetlands=True,
+        wetlands=False,
         carbon=True,
         ncp=False,
         ramsar=False,
