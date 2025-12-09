@@ -440,7 +440,7 @@ map.on('load', function () {
 
         // Load initial layer configuration and start polling
         loadLayerConfig();
-        setInterval(loadLayerConfig, 2000);
+        setInterval(loadLayerConfig, 5000);
         console.log('Layer config polling started');
 
         // Set up wetlands layer toggle after layer is added

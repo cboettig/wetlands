@@ -71,7 +71,7 @@ Generates layer-config.json
        ↓
 Writes to S3: s3://public-outputs/wetlands/layer-config.json
        ↓
-Map polls config every 2 seconds
+Map polls config every 5 seconds
        ↓
 Detects change → Updates layer visibility
        ↓
@@ -102,7 +102,7 @@ The system uses a **smart priority system** to handle conflicts:
 1. **Config Controls Initially**
    - Map loads with layer visibility from config
    - Checkboxes sync to match config
-   - Config polls every 2 seconds for changes
+   - Config polls every 5 seconds for changes
 
 2. **User Clicks = User Takes Control**
    - User clicks a checkbox → immediate change
@@ -126,10 +126,10 @@ The system uses a **smart priority system** to handle conflicts:
      → userOverrides['carbon-layer'] = true
      → Carbon appears immediately
 
-7s-15s: Config polls (no content change)
+10s-20s: Config polls (no content change)
         → Carbon stays ON (user override active)
 
-16s: Chatbot updates config: wetlands=ON, carbon=ON, hydrobasins=ON
+25s: Chatbot updates config: wetlands=ON, carbon=ON, hydrobasins=ON
      → userOverrides = {} (cleared)
      → All three layers appear
      → Chatbot regains full control
@@ -144,7 +144,7 @@ This provides a clean handoff: users can explore freely, but when the chatbot se
 - Local testing: `layer-config.json` (change `CONFIG_URL` in `map.js`)
 
 **Polling Mechanism:**
-- Fetches config every 2 seconds
+- Fetches config every 5 seconds
 - Uses checksum to detect actual changes
 - Only applies updates when content changes (efficient)
 
@@ -250,7 +250,7 @@ Any OpenAI-compatible API:
 
 2. Manually edit `layer-config.json`
 
-3. Refresh browser - changes should apply within 2 seconds
+3. Refresh browser - changes should apply within 5 seconds
 
 ### Debugging
 
