@@ -1,95 +1,112 @@
----
-title: "Priority Watersheds for Wetland Conservation"
-format: gfm
----
+Priority Watersheds for Wetland Conservation
+================
 
 ## Priority Watershed Analysis Methodology
 
-This analysis identifies priority watersheds for wetland conservation based on a composite score that integrates multiple conservation criteria. We use HydroBASINS Level 6 watersheds as our spatial units of analysis.
+This analysis identifies priority watersheds for wetland conservation
+based on a composite score that integrates multiple conservation
+criteria. We use HydroBASINS Level 6 watersheds as our spatial units of
+analysis.
 
 ### Data Sources
 
 The analysis integrates the following global datasets:
 
-1. **Wetlands**: Global Lakes and Wetlands Database (GLWD) - provides wetland extent and type
-2. **Carbon Storage**: Vulnerable carbon data from Conservation International - represents irrecoverable carbon stocks
-3. **Protected Areas**: World Database on Protected Areas (WDPA) - identifies existing conservation coverage
-4. **Biodiversity Value**: Nature's Contributions to People (NCP) scores - biodiversity and ecosystem service importance
-5. **Watersheds**: HydroBASINS Level 6 - watershed boundaries for analysis units
+1.  **Wetlands**: Global Lakes and Wetlands Database (GLWD) - provides
+    wetland extent and type
+2.  **Carbon Storage**: Vulnerable carbon data from Conservation
+    International - represents irrecoverable carbon stocks
+3.  **Protected Areas**: World Database on Protected Areas (WDPA) -
+    identifies existing conservation coverage
+4.  **Biodiversity Value**: Nature’s Contributions to People (NCP)
+    scores - biodiversity and ecosystem service importance
+5.  **Watersheds**: HydroBASINS Level 6 - watershed boundaries for
+    analysis units
 
 ### Composite Score Calculation
 
-Each watershed receives a **composite score** (0-1 scale) based on four equally-weighted criteria:
+Each watershed receives a **composite score** (0-1 scale) based on four
+equally-weighted criteria:
 
-#### 1. Wetland Area (25% weight)
-- **Metric**: Total hectares of wetlands within the watershed
-- **Normalization**: Scaled relative to the largest wetland area in the country
-- **Rationale**: Larger wetland areas provide greater ecosystem services and habitat
+#### 1\. Wetland Area (25% weight)
 
-#### 2. Vulnerable Carbon (25% weight)
-- **Metric**: Total vulnerable carbon stocks (metric tons) in wetland areas
-- **Normalization**: Scaled relative to the highest carbon stock in the country
-- **Rationale**: Identifies wetlands whose loss would release significant greenhouse gases
+  - **Metric**: Total hectares of wetlands within the watershed
+  - **Normalization**: Scaled relative to the largest wetland area in
+    the country
+  - **Rationale**: Larger wetland areas provide greater ecosystem
+    services and habitat
 
-#### 3. Protection Gap (25% weight)
-- **Metric**: Fraction of wetland area NOT currently protected (1 - protected_fraction)
-- **Range**: 0 (fully protected) to 1 (completely unprotected)
-- **Rationale**: Prioritizes watersheds with low current protection status
+#### 2\. Vulnerable Carbon (25% weight)
 
-#### 4. Biodiversity & Ecosystem Services (25% weight)
-- **Metric**: Average Nature's Contributions to People (NCP) score
-- **Range**: 0 (low importance) to 1 (high importance)
-- **Rationale**: Identifies areas critical for biodiversity and human well-being
+  - **Metric**: Total vulnerable carbon stocks (metric tons) in wetland
+    areas
+  - **Normalization**: Scaled relative to the highest carbon stock in
+    the country
+  - **Rationale**: Identifies wetlands whose loss would release
+    significant greenhouse gases
+
+#### 3\. Protection Gap (25% weight)
+
+  - **Metric**: Fraction of wetland area NOT currently protected (1 -
+    protected\_fraction)
+  - **Range**: 0 (fully protected) to 1 (completely unprotected)
+  - **Rationale**: Prioritizes watersheds with low current protection
+    status
+
+#### 4\. Biodiversity & Ecosystem Services (25% weight)
+
+  - **Metric**: Average Nature’s Contributions to People (NCP) score
+  - **Range**: 0 (low importance) to 1 (high importance)
+  - **Rationale**: Identifies areas critical for biodiversity and human
+    well-being
 
 ### Formula
 
-```
-composite_score = (
-    (wetland_area / max_wetland_area) * 0.25 +
-    (total_carbon / max_total_carbon) * 0.25 +
-    (1 - protected_fraction) * 0.25 +
-    avg_ncp_score * 0.25
-)
-```
+    composite_score = (
+        (wetland_area / max_wetland_area) * 0.25 +
+        (total_carbon / max_total_carbon) * 0.25 +
+        (1 - protected_fraction) * 0.25 +
+        avg_ncp_score * 0.25
+    )
 
 ### Important Notes
 
-- **GLWD Multiple Categories**: A single hexagon in GLWD can have multiple wetland type codes. We use `n_distinct(h8)` to avoid counting the same location multiple times.
-- **H3 Hexagons**: All data is indexed using H3 hexagons at resolution 8, where each hex = 73.73 hectares
-- **Country-Specific Normalization**: Scores are normalized within each country to identify relative priorities
+  - **GLWD Multiple Categories**: A single hexagon in GLWD can have
+    multiple wetland type codes. We use `n_distinct(h8)` to avoid
+    counting the same location multiple times.
+  - **H3 Hexagons**: All data is indexed using H3 hexagons at resolution
+    8, where each hex = 73.73 hectares
+  - **Country-Specific Normalization**: Scores are normalized within
+    each country to identify relative priorities
 
 ## Setup
 
-```{r setup, message=FALSE, warning=FALSE}
-library(duckdbfs)
-library(dplyr)
-library(dbplyr)
-library(ggplot2)
-library(tidyr)
+\`\`\`{r setup, message=FALSE, warning=FALSE} library(duckdbfs)
+library(dplyr) library(dbplyr) library(ggplot2) library(tidyr)
 
 # Configure DuckDB connection to S3
-duckdb_secrets(
-    key = "",
-    secret = "",
-    endpoint = "minio.carlboettiger.info"
-)
+
+duckdb\_secrets( key = "“, secret =”“, endpoint
+=”minio.carlboettiger.info" )
 
 # H3 hexagon area constant
-hex_hectares <- 73.7327598
+
+hex\_hectares \<- 73.7327598
 
 # Load datasets
-countries <- open_dataset(
-    "s3://public-overturemaps/hex/countries.parquet",
-    recursive = FALSE
-)
-wetlands <- open_dataset("s3://public-wetlands/glwd/hex/**")
-hydrobasins <- open_dataset("s3://public-hydrobasins/level_06/hexes/**")
-carbon <- open_dataset("s3://public-carbon/hex/vulnerable-carbon/**")
-wdpa <- open_dataset("s3://public-wdpa/hex/**")
-ncp <- open_dataset("s3://public-ncp/hex/ncp_biod_nathab/**")
 
-cat("✅ Datasets loaded successfully\n")
-```
+countries \<- open\_dataset(
+“s3://public-overturemaps/hex/countries.parquet”, recursive = FALSE )
+wetlands \<- open\_dataset(“s3://public-wetlands/glwd/hex/**")
+hydrobasins \<-
+open\_dataset("s3://public-hydrobasins/level\_06/hexes/**”) carbon \<-
+open\_dataset(“s3://public-carbon/hex/vulnerable-carbon/**") wdpa \<-
+open\_dataset("s3://public-wdpa/hex/**”) ncp \<-
+open\_dataset("s3://public-ncp/hex/ncp\_biod\_nathab/\*\*")
+
+cat(“✅ Datasets loaded successfully”)
+
+```` 
 
 ## Analysis Function
 
@@ -219,63 +236,63 @@ analyze_hydrobasins_for_country <- function(
 
     return(results)
 }
-```
+````
 
 ## North America: United States, Canada, and Mexico
 
-```{r}
+``` {r}
 us_results <- analyze_hydrobasins_for_country('US', 'United States', top_n = 3)
 ```
 
-```{r}
+``` {r}
 canada_results <- analyze_hydrobasins_for_country('CA', 'Canada', top_n = 3)
 ```
 
-```{r}
+``` {r}
 mexico_results <- analyze_hydrobasins_for_country('MX', 'Mexico', top_n = 3)
 ```
 
 ## Asia: China, South Korea, and Thailand
 
-```{r}
+``` {r}
 china_results <- analyze_hydrobasins_for_country('CN', 'China', top_n = 3)
 ```
 
-```{r}
+``` {r}
 korea_results <- analyze_hydrobasins_for_country('KR', 'South Korea', top_n = 3)
 ```
 
-```{r}
+``` {r}
 thailand_results <- analyze_hydrobasins_for_country('TH', 'Thailand', top_n = 3)
 ```
 
 ## Europe: United Kingdom, France, and Spain
 
-```{r}
+``` {r}
 uk_results <- analyze_hydrobasins_for_country('GB', 'United Kingdom', top_n = 3)
 ```
 
-```{r}
+``` {r}
 france_results <- analyze_hydrobasins_for_country('FR', 'France', top_n = 3)
 ```
 
-```{r}
+``` {r}
 spain_results <- analyze_hydrobasins_for_country('ES', 'Spain', top_n = 3)
 ```
 
 ## South America: Brazil and Chile
 
-```{r}
+``` {r}
 brazil_results <- analyze_hydrobasins_for_country('BR', 'Brazil', top_n = 3)
 ```
 
-```{r}
+``` {r}
 chile_results <- analyze_hydrobasins_for_country('CL', 'Chile', top_n = 3)
 ```
 
 ## Australia
 
-```{r}
+``` {r}
 australia_results <- analyze_hydrobasins_for_country(
     'AU',
     'Australia',
@@ -285,13 +302,13 @@ australia_results <- analyze_hydrobasins_for_country(
 
 ## India
 
-```{r}
+``` {r}
 india_results <- analyze_hydrobasins_for_country('IN', 'India', top_n = 3)
 ```
 
 ## Summary: Combined Results
 
-```{r}
+``` {r}
 # Combine all results
 all_results <- bind_rows(
     us_results,
@@ -334,93 +351,64 @@ cat("\nResults saved to: priority_hydrobasins_results_r.csv\n")
 
 ## Visualization: Comparative Analysis
 
-```{r fig.width=14, fig.height=10}
-# Reset graphics device to avoid API mismatch
-if (dev.cur() > 1) dev.off()
+\`\`\`{r fig.width=14, fig.height=10} \# Reset graphics device to avoid
+API mismatch if (dev.cur() \> 1) dev.off()
 
 # Create comparison plots
+
 library(patchwork)
 
 # A. Wetland Area by Country
-p1 <- all_results |>
-    group_by(country) |>
-    summarise(total_wetland = sum(wetland_area_hectares, na.rm = TRUE)) |>
-    arrange(total_wetland) |>
-    mutate(country = factor(country, levels = country)) |>
-    ggplot(aes(x = country, y = total_wetland)) +
-    geom_col(fill = "steelblue") +
-    coord_flip() +
-    labs(
-        title = "A. Wetland Area in Top Hydrobasins by Country",
-        x = NULL,
-        y = "Total Wetland Area (hectares)"
-    ) +
-    theme_minimal() +
-    theme(panel.grid.major.y = element_blank())
+
+p1 \<- all\_results |\> group\_by(country) |\> summarise(total\_wetland
+= sum(wetland\_area\_hectares, na.rm = TRUE)) |\>
+arrange(total\_wetland) |\> mutate(country = factor(country, levels =
+country)) |\> ggplot(aes(x = country, y = total\_wetland)) +
+geom\_col(fill = “steelblue”) + coord\_flip() + labs( title = “A.
+Wetland Area in Top Hydrobasins by Country”, x = NULL, y = “Total
+Wetland Area (hectares)” ) + theme\_minimal() + theme(panel.grid.major.y
+= element\_blank())
 
 # B. Carbon Storage by Country
-p2 <- all_results |>
-    group_by(country) |>
-    summarise(total_carbon = sum(total_carbon, na.rm = TRUE)) |>
-    arrange(total_carbon) |>
-    mutate(country = factor(country, levels = country)) |>
-    ggplot(aes(x = country, y = total_carbon)) +
-    geom_col(fill = "darkgreen") +
-    coord_flip() +
-    labs(
-        title = "B. Carbon Storage in Top Hydrobasins by Country",
-        x = NULL,
-        y = "Total Vulnerable Carbon"
-    ) +
-    theme_minimal() +
-    theme(panel.grid.major.y = element_blank())
+
+p2 \<- all\_results |\> group\_by(country) |\> summarise(total\_carbon =
+sum(total\_carbon, na.rm = TRUE)) |\> arrange(total\_carbon) |\>
+mutate(country = factor(country, levels = country)) |\> ggplot(aes(x =
+country, y = total\_carbon)) + geom\_col(fill = “darkgreen”) +
+coord\_flip() + labs( title = “B. Carbon Storage in Top Hydrobasins by
+Country”, x = NULL, y = “Total Vulnerable Carbon” ) + theme\_minimal() +
+theme(panel.grid.major.y = element\_blank())
 
 # C. Protected Fraction by Country
-p3 <- all_results |>
-    group_by(country) |>
-    summarise(avg_protected = mean(protected_fraction, na.rm = TRUE)) |>
-    arrange(avg_protected) |>
-    mutate(country = factor(country, levels = country)) |>
-    ggplot(aes(x = country, y = avg_protected)) +
-    geom_col(fill = "orange") +
-    coord_flip() +
-    scale_y_continuous(limits = c(0, 1)) +
-    labs(
-        title = "C. Protection Coverage in Top Hydrobasins by Country",
-        x = NULL,
-        y = "Average Protected Fraction"
-    ) +
-    theme_minimal() +
-    theme(panel.grid.major.y = element_blank())
+
+p3 \<- all\_results |\> group\_by(country) |\> summarise(avg\_protected
+= mean(protected\_fraction, na.rm = TRUE)) |\> arrange(avg\_protected)
+|\> mutate(country = factor(country, levels = country)) |\> ggplot(aes(x
+= country, y = avg\_protected)) + geom\_col(fill = “orange”) +
+coord\_flip() + scale\_y\_continuous(limits = c(0, 1)) + labs( title =
+“C. Protection Coverage in Top Hydrobasins by Country”, x = NULL, y =
+“Average Protected Fraction” ) + theme\_minimal() +
+theme(panel.grid.major.y = element\_blank())
 
 # D. NCP Score by Country
-p4 <- all_results |>
-    group_by(country) |>
-    summarise(avg_ncp = mean(avg_ncp_score, na.rm = TRUE)) |>
-    arrange(avg_ncp) |>
-    mutate(country = factor(country, levels = country)) |>
-    ggplot(aes(x = country, y = avg_ncp)) +
-    geom_col(fill = "purple") +
-    coord_flip() +
-    scale_y_continuous(limits = c(0, 1)) +
-    labs(
-        title = "D. Nature Contributions in Top Hydrobasins by Country",
-        x = NULL,
-        y = "Average NCP Score"
-    ) +
-    theme_minimal() +
-    theme(panel.grid.major.y = element_blank())
+
+p4 \<- all\_results |\> group\_by(country) |\> summarise(avg\_ncp =
+mean(avg\_ncp\_score, na.rm = TRUE)) |\> arrange(avg\_ncp) |\>
+mutate(country = factor(country, levels = country)) |\> ggplot(aes(x =
+country, y = avg\_ncp)) + geom\_col(fill = “purple”) + coord\_flip() +
+scale\_y\_continuous(limits = c(0, 1)) + labs( title = “D. Nature
+Contributions in Top Hydrobasins by Country”, x = NULL, y = “Average NCP
+Score” ) + theme\_minimal() + theme(panel.grid.major.y =
+element\_blank())
 
 # Combine plots
+
 (p1 | p2) / (p3 | p4)
 
-ggsave(
-    'priority_hydrobasins_comparison_r.png',
-    width = 14,
-    height = 10,
-    dpi = 300
-)
-```
+ggsave( ‘priority\_hydrobasins\_comparison\_r.png’, width = 14, height =
+10, dpi = 300 )
+
+```` 
 
 ## Composite Score Distribution
 
@@ -446,31 +434,32 @@ all_results |>
     theme(panel.grid.major.y = element_blank())
 
 ggsave('composite_score_distribution_r.png', width = 12, height = 6, dpi = 300)
-```
+````
 
 ## Key Findings
 
 ### Methodology
 
-For each country, we identified the top 3 Level 6 HydroBASINS based on a composite score that equally weights four key metrics:
+For each country, we identified the top 3 Level 6 HydroBASINS based on a
+composite score that equally weights four key metrics:
 
-1. **Wetland Area (25%)**: Total hectares of wetlands from GLWD
-2. **Carbon Storage (25%)**: Vulnerable carbon in wetlands
-3. **Protection Status (25%)**: Fraction of wetlands within WDPA protected areas
-4. **Nature's Contributions (25%)**: Average NCP biodiversity score
+1.  **Wetland Area (25%)**: Total hectares of wetlands from GLWD
+2.  **Carbon Storage (25%)**: Vulnerable carbon in wetlands
+3.  **Protection Status (25%)**: Fraction of wetlands within WDPA
+    protected areas
+4.  **Nature’s Contributions (25%)**: Average NCP biodiversity score
 
 ### Interpretation
 
-The composite score helps identify hydrobasins that balance multiple conservation priorities:
-- High wetland area indicates ecological significance
-- High carbon storage suggests climate mitigation importance
-- Low protection fraction highlights conservation gaps
-- High NCP scores indicate biodiversity value and ecosystem services
+The composite score helps identify hydrobasins that balance multiple
+conservation priorities: - High wetland area indicates ecological
+significance - High carbon storage suggests climate mitigation
+importance - Low protection fraction highlights conservation gaps - High
+NCP scores indicate biodiversity value and ecosystem services
 
 ### Next Steps
 
-The results can be used to:
-- Prioritize watersheds for conservation investment
-- Identify protection gaps in high-value wetlands
-- Support climate and biodiversity policy decisions
-- Guide restoration and protection efforts
+The results can be used to: - Prioritize watersheds for conservation
+investment - Identify protection gaps in high-value wetlands - Support
+climate and biodiversity policy decisions - Guide restoration and
+protection efforts
