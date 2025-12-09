@@ -185,6 +185,149 @@ class WetlandsChatbot {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
+    // Add a progress message showing SQL query execution
+    addProgressMessage(queryNumber, sqlQuery, description = null, status = 'executing') {
+        const messagesDiv = document.getElementById('chat-messages');
+
+        // Create or update progress container
+        let progressContainer = document.getElementById('progress-container');
+        if (!progressContainer) {
+            progressContainer = document.createElement('div');
+            progressContainer.id = 'progress-container';
+            progressContainer.className = 'chat-message system';
+            messagesDiv.appendChild(progressContainer);
+        }
+
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'query-progress';
+        progressDiv.style.marginBottom = '10px';
+        progressDiv.style.padding = '8px';
+        progressDiv.style.background = 'rgba(0, 0, 0, 0.05)';
+        progressDiv.style.borderRadius = '4px';
+
+        const statusIcon = status === 'executing' ? '⏳' : '✅';
+        const statusText = status === 'executing' ? 'Executing' : 'Completed';
+
+        let content = `<strong>${statusIcon} ${statusText} Query ${queryNumber}</strong>`;
+
+        // Add description if provided
+        if (description) {
+            content += `<div style="margin-top: 5px; font-size: 13px; opacity: 0.9;">${description}</div>`;
+        }
+
+        progressDiv.innerHTML = content;
+
+        // Add SQL details (collapsed by default)
+        const detailsDiv = document.createElement('details');
+        detailsDiv.style.marginTop = '5px';
+        detailsDiv.style.fontSize = '12px';
+        detailsDiv.style.opacity = '0.8';
+
+        const summaryDiv = document.createElement('summary');
+        summaryDiv.textContent = '🔍 View SQL';
+        summaryDiv.style.cursor = 'pointer';
+        summaryDiv.style.userSelect = 'none';
+
+        const codeDiv = document.createElement('pre');
+        codeDiv.style.marginTop = '5px';
+        codeDiv.style.background = 'rgba(0, 0, 0, 0.1)';
+        codeDiv.style.padding = '8px';
+        codeDiv.style.borderRadius = '4px';
+        codeDiv.style.overflowX = 'auto';
+        codeDiv.style.maxHeight = '200px';
+
+        const codeElement = document.createElement('code');
+        codeElement.textContent = sqlQuery;
+        codeDiv.appendChild(codeElement);
+
+        detailsDiv.appendChild(summaryDiv);
+        detailsDiv.appendChild(codeDiv);
+        progressDiv.appendChild(detailsDiv);
+
+        progressContainer.appendChild(progressDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        return progressDiv;
+    }
+
+    // Remove progress container
+    clearProgressMessages() {
+        const progressContainer = document.getElementById('progress-container');
+        if (progressContainer) {
+            progressContainer.remove();
+        }
+    }
+
+    // Generate a human-readable description of what a SQL query does
+    describeQuery(sqlQuery) {
+        const lower = sqlQuery.toLowerCase();
+
+        // Map layer update
+        if (lower.includes('layer-config.json')) {
+            const layers = [];
+            if (lower.includes("'wetlands-layer': true")) layers.push('wetlands');
+            if (lower.includes("'carbon-layer': true")) layers.push('carbon');
+            if (lower.includes("'ncp-layer': true")) layers.push('biodiversity');
+            if (lower.includes("'ramsar-layer': true")) layers.push('Ramsar sites');
+            if (lower.includes("'wdpa-layer': true")) layers.push('protected areas');
+            if (lower.includes("'hydrobasins-layer': true")) layers.push('watersheds');
+
+            if (layers.length > 0) {
+                return `Updating map to display: ${layers.join(', ')}`;
+            }
+            return 'Updating map layer visibility';
+        }
+
+        // Data export to CSV
+        if (lower.includes('.csv') && lower.includes('copy')) {
+            return 'Exporting results to CSV file';
+        }
+
+        // Count queries
+        if (lower.includes('count(')) {
+            if (lower.includes('ramsar')) return 'Counting Ramsar wetland sites';
+            if (lower.includes('wdpa')) return 'Counting protected areas';
+            if (lower.includes('peatland') || (lower.includes('z between') && lower.includes('22'))) {
+                return 'Calculating total peatland area';
+            }
+            if (lower.includes('wetland')) return 'Counting wetlands by type';
+            return 'Counting matching records';
+        }
+
+        // Sum/aggregate queries
+        if (lower.includes('sum(') && lower.includes('carbon')) {
+            return 'Calculating total carbon storage';
+        }
+
+        // Average queries
+        if (lower.includes('avg(') && lower.includes('ncp')) {
+            return 'Calculating average biodiversity importance';
+        }
+
+        // Geographic filters
+        let desc = 'Querying ';
+        if (lower.includes('ramsar')) desc += 'Ramsar sites';
+        else if (lower.includes('wdpa')) desc += 'protected areas';
+        else if (lower.includes('hydrobasin')) desc += 'watershed data';
+        else if (lower.includes('wetland')) desc += 'wetlands';
+        else desc += 'data';
+
+        // Add geographic context
+        if (lower.includes("country = 'us'") || lower.includes("iso3 = 'usa'")) {
+            desc += ' in the United States';
+        } else if (lower.includes("country = 'br'")) {
+            desc += ' in Brazil';
+        } else if (lower.includes("country = 'in'")) {
+            desc += ' in India';
+        } else if (lower.includes("country = 'au'")) {
+            desc += ' in Australia';
+        } else if (lower.includes('country =')) {
+            desc += ' by country';
+        }
+
+        return desc;
+    }
+
     async sendMessage() {
         const input = document.getElementById('chat-input');
         const sendButton = document.getElementById('chat-send');
@@ -203,17 +346,15 @@ class WetlandsChatbot {
         input.disabled = true;
         sendButton.disabled = true;
 
-        // Show loading
-        this.addMessage('system', 'Analyzing data<span class="loading-dots"></span>');
+        // Don't show generic loading - we'll show progress as queries execute
 
         try {
             console.log('[Chat] Calling queryLLM...');
             const result = await this.queryLLM(userMessage);
             console.log('[Chat] Got response, length:', result?.response?.length);
 
-            // Remove loading message
-            const messagesDiv = document.getElementById('chat-messages');
-            messagesDiv.removeChild(messagesDiv.lastChild);
+            // Clear progress messages
+            this.clearProgressMessages();
 
             // Add assistant response (handle undefined/null)
             const finalResponse = result.response || "I received an empty response. Please try again.";
@@ -234,9 +375,8 @@ class WetlandsChatbot {
             console.error('[Chat] Error caught:', error);
             console.error('[Chat] Error stack:', error.stack);
 
-            // Remove loading message
-            const messagesDiv = document.getElementById('chat-messages');
-            messagesDiv.removeChild(messagesDiv.lastChild);
+            // Clear progress messages on error
+            this.clearProgressMessages();
 
             this.addMessage('error', `Error: ${error.message}`);
         } finally {
@@ -377,6 +517,10 @@ class WetlandsChatbot {
                     if (functionArgs.query) {
                         this.currentTurnQueries.push(functionArgs.query);
                         console.log(`[SQL] ✅ SQL query ${this.currentTurnQueries.length} captured:`, functionArgs.query.substring(0, 100) + '...');
+
+                        // Generate description and show progress message in UI immediately
+                        const description = this.describeQuery(functionArgs.query);
+                        this.addProgressMessage(this.currentTurnQueries.length, functionArgs.query, description, 'executing');
                     }
 
                     // Check if the query argument is missing or empty
@@ -395,6 +539,7 @@ class WetlandsChatbot {
                     let queryResult;
                     try {
                         queryResult = await this.executeMCPQuery(functionArgs.query);
+                        console.log(`[SQL] ✅ Query ${this.currentTurnQueries.length} completed`);
                     } catch (err) {
                         console.error('[MCP] Execution error:', err);
                         queryResult = `Error executing query: ${err.message}`;
