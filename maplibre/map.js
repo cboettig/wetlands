@@ -42,6 +42,7 @@ const CONFIG_URL = 'https://minio.carlboettiger.info/public-outputs/wetlands/lay
 // Load and apply layer configuration
 async function loadLayerConfig() {
     try {
+        console.log('Fetching config from:', CONFIG_URL);
         const response = await fetch(CONFIG_URL + '?t=' + Date.now());
         const config = await response.json();
 
@@ -49,12 +50,15 @@ async function loadLayerConfig() {
         const newChecksum = JSON.stringify(config);
 
         if (newChecksum !== configChecksum) {
+            console.log('Config changed! Applying new config:', config);
             configChecksum = newChecksum;
             layerConfig = config;
             // Clear user overrides when config changes - new config takes precedence
             userOverrides = {};
             applyLayerConfig();
             console.log('Layer configuration loaded and applied:', config);
+        } else {
+            console.log('Config unchanged (checksum match)');
         }
     } catch (error) {
         console.error('Error loading layer configuration:', error);
@@ -69,13 +73,13 @@ function applyLayerConfig() {
 
     const legend = document.getElementById('legend');
 
-    Object.entries(layerConfig.layers).forEach(([layerId, settings]) => {
+    Object.entries(layerConfig.layers).forEach(([layerId, visible]) => {
         // Skip if user has manually overridden this layer
         if (userOverrides[layerId] !== undefined) {
             return;
         }
 
-        const visibility = settings.visible ? 'visible' : 'none';
+        const visibility = visible ? 'visible' : 'none';
 
         // Handle different layer types
         if (layerId === 'wetlands-layer') {
@@ -110,13 +114,12 @@ function applyLayerConfig() {
         // Sync checkbox state
         const checkbox = document.getElementById(layerId);
         if (checkbox) {
-            checkbox.checked = settings.visible;
+            checkbox.checked = visible;
         }
     });
 }
 
-// Poll for configuration changes every 2 seconds
-setInterval(loadLayerConfig, 2000);
+// Note: Polling is started after map loads, see below
 
 // Load wetland colormap and initialize map
 let wetlandColormap;
@@ -419,8 +422,10 @@ map.on('load', function () {
 
         console.log('HydroBASINS layer added successfully');
 
-        // Load initial layer configuration
+        // Load initial layer configuration and start polling
         loadLayerConfig();
+        setInterval(loadLayerConfig, 2000);
+        console.log('Layer config polling started');
 
         // Set up wetlands layer toggle after layer is added
         const wetlandsCheckbox = document.getElementById('wetlands-layer');
