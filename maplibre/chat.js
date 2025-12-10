@@ -202,7 +202,7 @@ class WetlandsChatbot {
         progressDiv.className = 'query-progress';
         progressDiv.style.marginBottom = '10px';
         progressDiv.style.padding = '8px';
-        progressDiv.style.background = 'rgba(0, 0, 0, 0.05)';
+        progressDiv.style.background = 'rgba(255, 255, 255, 0.6)';
         progressDiv.style.borderRadius = '4px';
 
         const statusIcon = status === 'executing' ? '⏳' : '✅';
@@ -248,6 +248,32 @@ class WetlandsChatbot {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
         return progressDiv;
+    }
+
+    // Show thinking indicator immediately
+    showThinking() {
+        const messagesDiv = document.getElementById('chat-messages');
+
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.id = 'thinking-indicator';
+        thinkingDiv.className = 'chat-message system';
+        thinkingDiv.style.padding = '12px';
+        thinkingDiv.style.background = 'rgba(255, 255, 255, 0.6)';
+        thinkingDiv.style.borderRadius = '8px';
+        thinkingDiv.style.fontStyle = 'italic';
+        thinkingDiv.style.opacity = '0.7';
+        thinkingDiv.innerHTML = '💭 Thinking...';
+
+        messagesDiv.appendChild(thinkingDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Remove thinking indicator
+    clearThinking() {
+        const thinkingDiv = document.getElementById('thinking-indicator');
+        if (thinkingDiv) {
+            thinkingDiv.remove();
+        }
     }
 
     // Remove progress container
@@ -346,14 +372,16 @@ class WetlandsChatbot {
         input.disabled = true;
         sendButton.disabled = true;
 
-        // Don't show generic loading - we'll show progress as queries execute
+        // Show immediate thinking indicator while LLM generates response
+        this.showThinking();
 
         try {
             console.log('[Chat] Calling queryLLM...');
             const result = await this.queryLLM(userMessage);
             console.log('[Chat] Got response, length:', result?.response?.length);
 
-            // Clear progress messages
+            // Clear thinking indicator and progress messages
+            this.clearThinking();
             this.clearProgressMessages();
 
             // Add assistant response (handle undefined/null)
@@ -517,6 +545,11 @@ class WetlandsChatbot {
                     if (functionArgs.query) {
                         this.currentTurnQueries.push(functionArgs.query);
                         console.log(`[SQL] ✅ SQL query ${this.currentTurnQueries.length} captured:`, functionArgs.query.substring(0, 100) + '...');
+
+                        // Clear thinking indicator when first query starts executing
+                        if (this.currentTurnQueries.length === 1) {
+                            this.clearThinking();
+                        }
 
                         // Generate description and show progress message in UI immediately
                         const description = this.describeQuery(functionArgs.query);
