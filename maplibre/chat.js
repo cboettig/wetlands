@@ -212,10 +212,12 @@ class WetlandsChatbot {
 
         progressDiv.innerHTML = content;
 
-        // Add SQL details (collapsed by default)
+        // Add SQL details (OPEN by default so queries are immediately visible)
         const detailsDiv = document.createElement('details');
+        detailsDiv.open = true; // Show SQL by default
+
         const summaryDiv = document.createElement('summary');
-        summaryDiv.textContent = '🔍 View SQL';
+        summaryDiv.textContent = '🔍 SQL Query';
 
         const codeDiv = document.createElement('pre');
 
@@ -350,6 +352,9 @@ class WetlandsChatbot {
         input.disabled = true;
         sendButton.disabled = true;
 
+        // Clear any previous progress messages from last turn
+        this.clearProgressMessages();
+
         // Show immediate thinking indicator while LLM generates response
         this.showThinking();
 
@@ -358,23 +363,22 @@ class WetlandsChatbot {
             const result = await this.queryLLM(userMessage);
             console.log('[Chat] Got response, length:', result?.response?.length);
 
-            // Clear thinking indicator and progress messages
+            // Clear thinking indicator only (KEEP progress messages visible)
             this.clearThinking();
-            this.clearProgressMessages();
 
             // Add assistant response (handle undefined/null)
             const finalResponse = result.response || "I received an empty response. Please try again.";
-            const metadata = result.sqlQueries && result.sqlQueries.length > 0 ? { sqlQueries: result.sqlQueries } : {};
 
             // Debug logging for SQL queries
             if (result.sqlQueries && result.sqlQueries.length > 0) {
-                console.log(`[Chat] ✅ ${result.sqlQueries.length} SQL queries captured for display`);
+                console.log(`[Chat] ✅ ${result.sqlQueries.length} SQL queries executed`);
                 result.sqlQueries.forEach((q, i) => console.log(`[Chat]   Query ${i + 1}: ${q.substring(0, 100)}...`));
             } else {
-                console.log('[Chat] No SQL queries to display (could be clarification, or no query executed yet)');
+                console.log('[Chat] No SQL queries executed (could be clarification, or no query needed)');
             }
 
-            this.addMessage('assistant', finalResponse, metadata);
+            // Show final interpretation message without metadata (queries already shown in progress)
+            this.addMessage('assistant', finalResponse);
             this.messages.push({ role: 'assistant', content: finalResponse });
 
         } catch (error) {
@@ -499,6 +503,15 @@ class WetlandsChatbot {
             if (message.tool_calls && message.tool_calls.length > 0) {
                 toolCallCount++;
                 console.log(`[LLM] Tool calls requested (${toolCallCount}/${MAX_TOOL_CALLS}):`, message.tool_calls.length);
+
+                // SHOW PLANNING MESSAGE: Display LLM's thinking/planning text if present
+                if (message.content && message.content.trim()) {
+                    console.log('[LLM] Displaying planning/reasoning message:', message.content);
+                    if (toolCallCount === 1) {
+                        this.clearThinking(); // Clear initial "Thinking..." only on first message
+                    }
+                    this.addMessage('assistant-thinking', message.content);
+                }
 
                 // Process all tool calls in this message
                 for (const toolCall of message.tool_calls) {
