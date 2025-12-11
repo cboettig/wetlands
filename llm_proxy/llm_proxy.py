@@ -92,7 +92,7 @@ async def proxy_chat(request: ChatRequest):
     print(f"Sending request to LLM...")
     import time
     start_time = time.time()
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minutes to match ingress timeout
         try:
             print(f"Calling httpx.post...")
             response = await client.post(LLM_ENDPOINT, json=payload, headers=headers)
@@ -144,7 +144,7 @@ async def proxy_llm(request: Request):
     # Add API key
     headers["Authorization"] = f"Bearer {LLM_API_KEY}"
     
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minutes to match ingress timeout
         try:
             resp = await client.post(LLM_ENDPOINT, content=body, headers=headers)
             return Response(
