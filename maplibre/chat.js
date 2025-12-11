@@ -120,7 +120,7 @@ class WetlandsChatbot {
             'Hi! I can help you explore global wetlands data (GLWDv2.0). Try asking:\n\n' +
             '* "How many hectares of peatlands are there?"\n' +
             '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
-            '* "Evaluate wetlands by Nature\'s Contributions to People (NCP) in Australia, broken down by region"'
+            '* "How many bird species can be found in forested wetlands in Costa Rica? List the species as csv."'
         );
     }
 
@@ -267,22 +267,6 @@ class WetlandsChatbot {
     // Generate a human-readable description of what a SQL query does
     describeQuery(sqlQuery) {
         const lower = sqlQuery.toLowerCase();
-
-        // Map layer update
-        if (lower.includes('layer-config.json')) {
-            const layers = [];
-            if (lower.includes("'wetlands-layer': true")) layers.push('wetlands');
-            if (lower.includes("'carbon-layer': true")) layers.push('carbon');
-            if (lower.includes("'ncp-layer': true")) layers.push('biodiversity');
-            if (lower.includes("'ramsar-layer': true")) layers.push('Ramsar sites');
-            if (lower.includes("'wdpa-layer': true")) layers.push('protected areas');
-            if (lower.includes("'hydrobasins-layer': true")) layers.push('watersheds');
-
-            if (layers.length > 0) {
-                return `Updating map to display: ${layers.join(', ')}`;
-            }
-            return 'Updating map layer visibility';
-        }
 
         // Data export to CSV
         if (lower.includes('.csv') && lower.includes('copy')) {
@@ -507,9 +491,7 @@ class WetlandsChatbot {
                 // SHOW PLANNING MESSAGE: Display LLM's thinking/planning text if present
                 if (message.content && message.content.trim()) {
                     console.log('[LLM] Displaying planning/reasoning message:', message.content);
-                    if (toolCallCount === 1) {
-                        this.clearThinking(); // Clear initial "Thinking..." only on first message
-                    }
+                    this.clearThinking(); // Clear "Thinking..." indicator if still present
                     this.addMessage('assistant-thinking', message.content);
                 }
 
