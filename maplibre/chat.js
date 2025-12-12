@@ -447,8 +447,11 @@ class WetlandsChatbot {
             return { response: "Sorry, the database connection is not available. Please refresh the page to try again." };
         }
 
-        // Use the configured endpoint directly
+        // Build full endpoint URL (base + /chat/completions)
         let endpoint = this.llmEndpoint;
+        if (!endpoint.endsWith('/chat/completions')) {
+            endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+        }
         console.log('[LLM] Starting request to:', endpoint);
         console.log('[LLM] Origin:', window.location.origin);
 
@@ -522,11 +525,22 @@ class WetlandsChatbot {
             console.log('[LLM] Sending fetch request...');
             const startTime = Date.now();
 
+            // Prepare headers with proxy authentication
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            // Add proxy authorization if configured
+            if (this.config.proxy_key) {
+                headers['Authorization'] = `Bearer ${this.config.proxy_key}`;
+                console.log('[LLM] Using proxy key from config');
+            } else {
+                console.log('[LLM] No proxy key in config');
+            }
+
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify(requestPayload)
             });
 
@@ -779,7 +793,7 @@ function initializeChatbot() {
                     // Initialize with default config so UI still appears
                     chatbot = new WetlandsChatbot({
                         mcp_server_url: 'https://biodiversity-mcp.nrp-nautilus.io/sse',
-                        llm_endpoint: 'https://llm-proxy.nrp-nautilus.io/chat',
+                        llm_endpoint: 'https://llm-proxy.nrp-nautilus.io/v1',
                         llm_model: 'qwen3'
                     });
                 });
