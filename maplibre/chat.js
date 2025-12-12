@@ -547,16 +547,11 @@ class WetlandsChatbot {
 
             // Prepare headers with proxy authentication
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${modelConfig.api_key}`
             };
 
-            // Add authorization if configured for this model
-            if (modelConfig.api_key && modelConfig.api_key !== 'EMPTY') {
-                headers['Authorization'] = `Bearer ${modelConfig.api_key}`;
-                console.log('[LLM] Using API key from model config');
-            } else {
-                console.log('[LLM] No API key configured for this model');
-            }
+            console.log('[LLM] Using API key from model config:', modelConfig.api_key);
 
             const response = await fetch(endpoint, {
                 method: 'POST',
