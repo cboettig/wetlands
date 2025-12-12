@@ -78,6 +78,12 @@ class WetlandsChatbot {
         // Chat container
         const container = document.createElement('div');
         container.id = 'chat-container';
+
+        // Build model selector options from config
+        const modelOptions = this.config.llm_models?.map(model =>
+            `<option value="${model.value}">${model.label}</option>`
+        ).join('') || '<option value="kimi">Kimi</option>';
+
         container.innerHTML = `
             <div id="chat-header">
                 <h3>🦆 Wetlands Data Assistant</h3>
@@ -90,11 +96,7 @@ class WetlandsChatbot {
             </div>
             <div id="chat-footer">
                 <select id="model-selector" title="Select LLM Model">
-                    <option value="glm-4.6">GLM-4.6</option>
-                    <option value="gpt-oss">GPT-OSS</option>
-                    <option value="qwen3">Qwen3</option>
-                    <option value="glm-v">GLM-V</option>
-                    <option value="kimi" selected>Kimi</option>
+                    ${modelOptions}
                 </select>
             </div>
         `;

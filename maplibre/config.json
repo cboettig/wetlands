@@ -2,5 +2,27 @@
     "mcp_server_url": "https://biodiversity-mcp.nrp-nautilus.io/sse",
     "llm_endpoint": "https://llm-proxy.nrp-nautilus.io/v1",
     "llm_model": "kimi",
+    "llm_models": [
+        {
+            "value": "glm-4.6",
+            "label": "GLM-4.6"
+        },
+        {
+            "value": "gpt-oss",
+            "label": "GPT-OSS"
+        },
+        {
+            "value": "qwen3",
+            "label": "Qwen3"
+        },
+        {
+            "value": "glm-v",
+            "label": "GLM-V"
+        },
+        {
+            "value": "kimi",
+            "label": "Kimi"
+        }
+    ],
     "proxy_key": "EMPTY"
 }
