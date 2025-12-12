@@ -551,7 +551,7 @@ class WetlandsChatbot {
                 'Authorization': `Bearer ${modelConfig.api_key}`
             };
 
-            console.log('[LLM] Using API key from model config:', modelConfig.api_key);
+            console.log('[LLM] Using API key from model config');
 
             const response = await fetch(endpoint, {
                 method: 'POST',
