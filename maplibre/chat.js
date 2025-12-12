@@ -468,7 +468,7 @@ class WetlandsChatbot {
 
         // Detect GPT-OSS model for conditional API usage
         const isGptOss = this.selectedModel === 'nimbus' || modelConfig.value === 'nimbus';
-        
+
         // Build full endpoint URL
         let endpoint = modelConfig.endpoint;
         if (isGptOss) {
@@ -551,7 +551,7 @@ class WetlandsChatbot {
                     if (msg.role === 'tool') return `Tool Result: ${msg.content}`;
                     return '';
                 }).filter(Boolean).join('\n\n');
-                
+
                 requestPayload = {
                     model: this.selectedModel,
                     input: inputText,
@@ -570,7 +570,7 @@ class WetlandsChatbot {
 
             console.log(`[LLM] Request payload (Step ${toolCallCount + 1}):`, {
                 model: requestPayload.model,
-                messageCount: requestPayload.messages.length,
+                messageCount: requestPayload.messages?.length || 'N/A (using input string)',
                 toolCount: requestPayload.tools.length
             });
 
@@ -603,16 +603,16 @@ class WetlandsChatbot {
 
             const data = await response.json();
             let message;
-            
+
             if (isGptOss) {
                 // Parse Responses API format
                 // GPT-OSS returns output array with text and function_call items
                 const output = data.output || [];
-                
+
                 // Extract text content
                 const textItems = output.filter(item => item.type === 'text');
                 const content = textItems.map(item => item.text).join('');
-                
+
                 // Extract function calls
                 const functionCallItems = output.filter(item => item.type === 'function_call');
                 const toolCalls = functionCallItems.map(item => ({
@@ -623,7 +623,7 @@ class WetlandsChatbot {
                         arguments: JSON.stringify(item.arguments)
                     }
                 }));
-                
+
                 message = {
                     role: 'assistant',
                     content: content || null,
