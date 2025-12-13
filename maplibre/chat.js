@@ -382,19 +382,25 @@ class WetlandsChatbot {
     // Ask if user wants to continue with another tool call
     async askContinue(iterationNumber) {
         return new Promise((resolve) => {
-            const messagesDiv = document.getElementById('chat-messages');
-
-            const continueDiv = document.createElement('div');
-            continueDiv.className = 'chat-message assistant';
-            continueDiv.innerHTML = `
-                <p style="font-size: 14px; opacity: 0.8;">processing results...</p>
-            `;
-
-            messagesDiv.appendChild(continueDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-            // Auto-continue after showing message
-            setTimeout(() => resolve(true), 500);
+            // Instead of a separate message, show the processing message inside the most recent query result section
+            const resultsDiv = document.querySelector('.tool-results details:last-of-type');
+            if (resultsDiv) {
+                // Insert a processing message at the end of the result section
+                const processingP = document.createElement('p');
+                processingP.style.fontSize = '14px';
+                processingP.style.opacity = '0.8';
+                processingP.textContent = 'processing results...';
+                processingP.className = 'processing-inline';
+                resultsDiv.appendChild(processingP);
+                // Remove after short delay
+                setTimeout(() => {
+                    processingP.remove();
+                    resolve(true);
+                }, 500);
+            } else {
+                // Fallback: if no result section, just resolve after delay
+                setTimeout(() => resolve(true), 500);
+            }
         });
     }
 
