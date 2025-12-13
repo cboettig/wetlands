@@ -10,39 +10,95 @@ window.MapController = {
             displayName: 'Global Wetlands (GLWD)',
             layerIds: ['wetlands-layer'],
             checkboxId: 'wetlands-layer',
-            hasLegend: true
+            hasLegend: true,
+            isVector: false
         },
         'ncp': {
             displayName: "Nature's Contributions to People",
             layerIds: ['ncp-layer'],
             checkboxId: 'ncp-layer',
-            hasLegend: false
+            hasLegend: false,
+            isVector: false
         },
         'carbon': {
             displayName: 'Vulnerable Carbon',
             layerIds: ['carbon-layer'],
             checkboxId: 'carbon-layer',
-            hasLegend: false
+            hasLegend: false,
+            isVector: false
         },
         'ramsar': {
             displayName: 'Ramsar Wetland Sites',
             layerIds: ['ramsar-layer', 'ramsar-outline'],
             checkboxId: 'ramsar-layer',
-            hasLegend: false
+            hasLegend: false,
+            isVector: true,
+            sourceLayer: 'ramsar',
+            // Properties available for filtering (from PMTiles)
+            filterableProperties: {
+                'ramsarid': { type: 'number', description: 'Unique Ramsar site ID' },
+                'officialna': { type: 'string', description: 'Official site name' },
+                'iso3': { type: 'string', description: 'ISO 3-letter country code' },
+                'country_en': { type: 'string', description: 'Country name in English' },
+                'area_off': { type: 'number', description: 'Official area in hectares' },
+                'Criterion1': { type: 'boolean', description: 'Criterion 1: Representative/rare wetland type' },
+                'Criterion2': { type: 'boolean', description: 'Criterion 2: Supports vulnerable species' },
+                'Criterion3': { type: 'boolean', description: 'Criterion 3: Maintains biodiversity' },
+                'Criterion4': { type: 'boolean', description: 'Criterion 4: Supports critical life stages' },
+                'Criterion5': { type: 'boolean', description: 'Criterion 5: Supports 20,000+ waterbirds' },
+                'Criterion6': { type: 'boolean', description: 'Criterion 6: Supports 1% of waterbird population' },
+                'Criterion7': { type: 'boolean', description: 'Criterion 7: Supports indigenous fish' },
+                'Criterion8': { type: 'boolean', description: 'Criterion 8: Fish spawning/nursery' },
+                'Criterion9': { type: 'boolean', description: 'Criterion 9: Supports 1% of non-avian species' }
+            }
         },
         'wdpa': {
             displayName: 'Protected Areas (WDPA)',
             layerIds: ['wdpa-layer', 'wdpa-outline'],
             checkboxId: 'wdpa-layer',
-            hasLegend: false
+            hasLegend: false,
+            isVector: true,
+            sourceLayer: 'wdpa',
+            filterableProperties: {
+                'NAME_ENG': { type: 'string', description: 'Site name in English' },
+                'NAME': { type: 'string', description: 'Site name (original)' },
+                'DESIG_ENG': { type: 'string', description: 'Designation type in English' },
+                'DESIG_TYPE': { type: 'string', description: 'Designation type category' },
+                'IUCN_CAT': {
+                    type: 'string',
+                    description: 'IUCN management category',
+                    values: ['Ia', 'Ib', 'II', 'III', 'IV', 'V', 'VI', 'Not Reported', 'Not Applicable', 'Not Assigned']
+                },
+                'ISO3': { type: 'string', description: 'ISO 3-letter country code' },
+                'STATUS': { type: 'string', description: 'Current status (e.g., Designated, Proposed)' },
+                'STATUS_YR': { type: 'number', description: 'Year of status' },
+                'GOV_TYPE': { type: 'string', description: 'Governance type' },
+                'OWN_TYPE': { type: 'string', description: 'Ownership type' },
+                'GIS_AREA': { type: 'number', description: 'GIS-calculated area in km²' },
+                'REP_AREA': { type: 'number', description: 'Reported area in km²' },
+                'MARINE': { type: 'string', description: 'Marine designation (0, 1, 2)' },
+                'NO_TAKE': { type: 'string', description: 'No-take zone status' }
+            }
         },
         'hydrobasins': {
             displayName: 'Watersheds (HydroBASINS L6)',
             layerIds: ['hydrobasins-fill', 'hydrobasins-layer'],
             checkboxId: 'hydrobasins-layer',
-            hasLegend: false
+            hasLegend: false,
+            isVector: true,
+            sourceLayer: 'hydrobasins_level_06',
+            filterableProperties: {
+                'HYBAS_ID': { type: 'number', description: 'Unique basin identifier' },
+                'PFAF_ID': { type: 'number', description: 'Pfafstetter hierarchical code' },
+                'UP_AREA': { type: 'number', description: 'Upstream drainage area in km²' },
+                'SUB_AREA': { type: 'number', description: 'Sub-basin area in km²' },
+                'MAIN_BAS': { type: 'number', description: 'Main basin ID' }
+            }
         }
     },
+
+    // Store active filters for each layer
+    activeFilters: {},
 
     // Get list of available layers and their current visibility
     getAvailableLayers: function () {
@@ -144,6 +200,181 @@ window.MapController = {
             results.push(this.setLayerVisibility(key, true));
         }
         return results;
+    },
+
+    // Get filterable properties for a vector layer
+    getFilterableProperties: function (layerKey) {
+        const config = this.layers[layerKey];
+        if (!config) {
+            return { success: false, error: `Unknown layer: ${layerKey}` };
+        }
+        if (!config.isVector) {
+            return { success: false, error: `Layer '${layerKey}' is a raster layer and does not support filtering` };
+        }
+        return {
+            success: true,
+            layer: layerKey,
+            displayName: config.displayName,
+            properties: config.filterableProperties
+        };
+    },
+
+    // Set a filter on a vector layer using MapLibre filter expressions
+    // filter should be a valid MapLibre filter expression array, e.g.:
+    //   ["==", "IUCN_CAT", "II"]
+    //   ["in", "IUCN_CAT", "Ia", "Ib", "II"]
+    //   ["all", ["==", "Criterion1", true], ["==", "Criterion2", true]]
+    //   [">=", "area_off", 10000]
+    setLayerFilter: function (layerKey, filter) {
+        const config = this.layers[layerKey];
+        if (!config) {
+            return { success: false, error: `Unknown layer: ${layerKey}. Available layers: ${Object.keys(this.layers).join(', ')}` };
+        }
+        if (!config.isVector) {
+            return { success: false, error: `Layer '${layerKey}' is a raster layer and does not support filtering. Only vector layers (ramsar, wdpa, hydrobasins) can be filtered.` };
+        }
+
+        if (!window.map || !window.map.getLayer) {
+            return { success: false, error: 'Map not yet initialized' };
+        }
+
+        try {
+            // Apply filter to all layer IDs for this layer
+            for (const layerId of config.layerIds) {
+                if (window.map.getLayer(layerId)) {
+                    window.map.setFilter(layerId, filter);
+                    console.log(`[MapController] Filter applied to layer '${layerId}':`, filter);
+                }
+            }
+
+            // Store the active filter
+            this.activeFilters[layerKey] = filter;
+
+            // Build a human-readable description of the filter
+            const filterDescription = this.describeFilter(filter);
+
+            return {
+                success: true,
+                layer: layerKey,
+                displayName: config.displayName,
+                filter: filter,
+                description: filterDescription
+            };
+        } catch (error) {
+            console.error('[MapController] Error setting filter:', error);
+            return { success: false, error: `Failed to apply filter: ${error.message}` };
+        }
+    },
+
+    // Clear filter from a layer (show all features)
+    clearLayerFilter: function (layerKey) {
+        const config = this.layers[layerKey];
+        if (!config) {
+            return { success: false, error: `Unknown layer: ${layerKey}` };
+        }
+        if (!config.isVector) {
+            return { success: false, error: `Layer '${layerKey}' is a raster layer and does not have filters` };
+        }
+
+        if (!window.map || !window.map.getLayer) {
+            return { success: false, error: 'Map not yet initialized' };
+        }
+
+        try {
+            // Remove filter from all layer IDs (set to null or undefined)
+            for (const layerId of config.layerIds) {
+                if (window.map.getLayer(layerId)) {
+                    window.map.setFilter(layerId, null);
+                    console.log(`[MapController] Filter cleared from layer '${layerId}'`);
+                }
+            }
+
+            // Remove from active filters
+            delete this.activeFilters[layerKey];
+
+            return {
+                success: true,
+                layer: layerKey,
+                displayName: config.displayName,
+                message: 'Filter cleared - showing all features'
+            };
+        } catch (error) {
+            console.error('[MapController] Error clearing filter:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Get current filter for a layer
+    getLayerFilter: function (layerKey) {
+        const config = this.layers[layerKey];
+        if (!config) {
+            return { success: false, error: `Unknown layer: ${layerKey}` };
+        }
+        if (!config.isVector) {
+            return { success: false, error: `Layer '${layerKey}' is a raster layer and does not support filtering` };
+        }
+
+        const filter = this.activeFilters[layerKey] || null;
+        return {
+            success: true,
+            layer: layerKey,
+            displayName: config.displayName,
+            filter: filter,
+            hasFilter: filter !== null,
+            description: filter ? this.describeFilter(filter) : 'No filter applied'
+        };
+    },
+
+    // Helper: Generate human-readable description of a filter
+    describeFilter: function (filter) {
+        if (!filter || !Array.isArray(filter)) return 'No filter';
+
+        const op = filter[0];
+
+        // Handle comparison operators
+        if (['==', '!=', '>', '<', '>=', '<='].includes(op)) {
+            const prop = filter[1];
+            const val = filter[2];
+            const opText = {
+                '==': 'equals',
+                '!=': 'not equals',
+                '>': 'greater than',
+                '<': 'less than',
+                '>=': 'at least',
+                '<=': 'at most'
+            }[op];
+            return `${prop} ${opText} ${val}`;
+        }
+
+        // Handle 'in' operator
+        if (op === 'in') {
+            const prop = filter[1];
+            const vals = filter.slice(2);
+            return `${prop} is one of: ${vals.join(', ')}`;
+        }
+
+        // Handle 'all' (AND)
+        if (op === 'all') {
+            const conditions = filter.slice(1).map(f => this.describeFilter(f));
+            return conditions.join(' AND ');
+        }
+
+        // Handle 'any' (OR)
+        if (op === 'any') {
+            const conditions = filter.slice(1).map(f => this.describeFilter(f));
+            return `(${conditions.join(' OR ')})`;
+        }
+
+        // Handle 'has' / '!has'
+        if (op === 'has') {
+            return `has property '${filter[1]}'`;
+        }
+        if (op === '!has') {
+            return `missing property '${filter[1]}'`;
+        }
+
+        // Fallback
+        return JSON.stringify(filter);
     }
 };
 
