@@ -88,6 +88,95 @@ class WetlandsChatbot {
                     const layers = window.MapController.getAvailableLayers();
                     return JSON.stringify({ success: true, layers: layers });
                 }
+            },
+            {
+                name: 'filter_map_layer',
+                description: `Apply a filter to a vector map layer to show only features matching certain criteria. Only works on vector layers: "wdpa" (Protected Areas), "ramsar" (Ramsar Sites), "hydrobasins" (Watersheds).
+
+The filter must be a valid MapLibre filter expression array. Common patterns:
+- Equality: ["==", "property_name", "value"]
+- Not equal: ["!=", "property_name", "value"]  
+- In list: ["in", "property_name", "val1", "val2", "val3"]
+- Comparison: [">=", "property_name", 1000] or ["<", "property_name", 500]
+- AND: ["all", ["==", "prop1", "val1"], ["==", "prop2", true]]
+- OR: ["any", ["==", "prop1", "val1"], ["==", "prop1", "val2"]]
+
+WDPA layer properties: IUCN_CAT (Ia, Ib, II, III, IV, V, VI), ISO3, DESIG_ENG, STATUS, STATUS_YR, GIS_AREA, NAME_ENG
+Ramsar layer properties: officialna, iso3, country_en, area_off, Criterion1-Criterion9 (boolean)
+HydroBASINS properties: PFAF_ID, UP_AREA, SUB_AREA, MAIN_BAS`,
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        layer: {
+                            type: 'string',
+                            description: 'The vector layer to filter. One of: "wdpa", "ramsar", "hydrobasins"',
+                            enum: ['wdpa', 'ramsar', 'hydrobasins']
+                        },
+                        filter: {
+                            type: 'array',
+                            description: 'MapLibre filter expression array. Examples: ["==", "IUCN_CAT", "II"], ["in", "IUCN_CAT", "Ia", "Ib", "II"], ["all", ["==", "Criterion1", true], ["==", "Criterion2", true]]'
+                        }
+                    },
+                    required: ['layer', 'filter']
+                },
+                execute: (args) => {
+                    if (!window.MapController) {
+                        return JSON.stringify({ success: false, error: 'Map controller not available' });
+                    }
+                    const result = window.MapController.setLayerFilter(args.layer, args.filter);
+                    return JSON.stringify(result);
+                }
+            },
+            {
+                name: 'clear_map_filter',
+                description: 'Remove any active filter from a vector map layer, showing all features again. Use this to reset a layer after filtering.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        layer: {
+                            type: 'string',
+                            description: 'The vector layer to clear filter from. One of: "wdpa", "ramsar", "hydrobasins"',
+                            enum: ['wdpa', 'ramsar', 'hydrobasins']
+                        }
+                    },
+                    required: ['layer']
+                },
+                execute: (args) => {
+                    if (!window.MapController) {
+                        return JSON.stringify({ success: false, error: 'Map controller not available' });
+                    }
+                    const result = window.MapController.clearLayerFilter(args.layer);
+                    return JSON.stringify(result);
+                }
+            },
+            {
+                name: 'get_layer_filter_info',
+                description: 'Get information about what properties can be filtered on a vector layer, and the current active filter if any. Use this to understand what filter options are available.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        layer: {
+                            type: 'string',
+                            description: 'The vector layer to get filter info for. One of: "wdpa", "ramsar", "hydrobasins"',
+                            enum: ['wdpa', 'ramsar', 'hydrobasins']
+                        }
+                    },
+                    required: ['layer']
+                },
+                execute: (args) => {
+                    if (!window.MapController) {
+                        return JSON.stringify({ success: false, error: 'Map controller not available' });
+                    }
+                    const propsResult = window.MapController.getFilterableProperties(args.layer);
+                    const filterResult = window.MapController.getLayerFilter(args.layer);
+                    return JSON.stringify({
+                        success: true,
+                        layer: args.layer,
+                        filterableProperties: propsResult.properties,
+                        currentFilter: filterResult.filter,
+                        currentFilterDescription: filterResult.description
+                    });
+                }
             }
         ];
     }
@@ -293,7 +382,8 @@ class WetlandsChatbot {
             '* "How many hectares of peatlands are there?"\n' +
             '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
             '* "Show me Ramsar sites on the map"\n' +
-            '* "Hide the wetlands layer and show protected areas"'
+            '* "Show only IUCN category II protected areas"\n' +
+            '* "Filter Ramsar sites to those meeting Criterion 1 and 2"'
         );
     }
 
