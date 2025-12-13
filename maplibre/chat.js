@@ -21,10 +21,15 @@ class WetlandsChatbot {
         this.mcpTools = [];
         this.selectedModel = config.llm_model || 'kimi'; // Default model
         this.currentTurnQueries = []; // Track ALL SQL queries in current turn
+        this.mcpConnected = false; // Track connection state
+        this.reconnectAttempts = 0; // Track reconnection attempts
+        this.maxReconnectAttempts = 3; // Maximum reconnection attempts
+        this.healthCheckInterval = null; // For periodic health checks
 
         this.initializeUI();
         this.loadSystemPrompt();
         this.initMCP();
+        this.startHealthCheck(); // Start monitoring connection health
     }
 
     getCurrentModelConfig() {
@@ -71,6 +76,8 @@ class WetlandsChatbot {
             // Connect to MCP server
             await this.mcpClient.connect(transport);
             console.log('✓ MCP client connected');
+            this.mcpConnected = true;
+            this.reconnectAttempts = 0; // Reset on successful connection
 
             // Get available tools
             const toolsResponse = await this.mcpClient.listTools();
@@ -80,11 +87,72 @@ class WetlandsChatbot {
         } catch (error) {
             console.error('❌ MCP initialization error:', error);
             this.mcpClient = null;
+            this.mcpConnected = false;
             this.mcpTools = []; // Ensure tools is an empty array, not undefined
             // Show error in chat UI
             setTimeout(() => {
-                this.addMessage('error', 'Database connection failed. Some features may not work. Please refresh the page.');
+                this.addMessage('error', 'Database connection failed. Attempting to reconnect...');
             }, 1000);
+        }
+    }
+
+    async reconnectMCP() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('❌ Max reconnection attempts reached');
+            throw new Error('Could not reconnect to database. Please refresh the page.');
+        }
+
+        this.reconnectAttempts++;
+        console.log(`🔄 Reconnecting to MCP (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+
+        // Show reconnection message to user
+        this.addMessage('reconnecting', `🔄 Reconnecting to database (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+
+        // Close existing client if present
+        if (this.mcpClient) {
+            try {
+                await this.mcpClient.close();
+            } catch (e) {
+                console.warn('Error closing old client:', e);
+            }
+        }
+
+        // Wait before reconnecting (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        await this.initMCP();
+
+        if (!this.mcpConnected) {
+            throw new Error('Reconnection failed');
+        }
+
+        // Show success message
+        this.addMessage('reconnecting', '✓ Database connection restored!');
+    }
+
+    startHealthCheck() {
+        // Check connection health every 5 minutes
+        this.healthCheckInterval = setInterval(async () => {
+            if (this.mcpConnected && this.mcpClient) {
+                try {
+                    console.log('🏥 Performing health check...');
+                    // Try to list tools as a lightweight check
+                    await this.mcpClient.listTools();
+                    console.log('✓ Health check passed');
+                } catch (error) {
+                    console.warn('❌ Health check failed:', error.message);
+                    this.mcpConnected = false;
+                    // Don't show error to user yet - will reconnect on next query
+                }
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+    }
+
+    stopHealthCheck() {
+        if (this.healthCheckInterval) {
+            clearInterval(this.healthCheckInterval);
+            this.healthCheckInterval = null;
         }
     }
 
@@ -787,9 +855,16 @@ class WetlandsChatbot {
         };
     }
 
-    async executeMCPQuery(sqlQuery) {
-        if (!this.mcpClient) {
-            throw new Error('MCP client not initialized');
+    async executeMCPQuery(sqlQuery, retryCount = 0) {
+        const maxRetries = 2;
+
+        if (!this.mcpClient || !this.mcpConnected) {
+            console.log('🔄 MCP not connected, attempting to reconnect...');
+            try {
+                await this.reconnectMCP();
+            } catch (error) {
+                throw new Error('Database connection unavailable. Please refresh the page.');
+            }
         }
 
         console.log('🔧 Executing MCP query:', sqlQuery.substring(0, 100) + '...');
@@ -846,6 +921,32 @@ class WetlandsChatbot {
                 stack: error.stack,
                 type: error.constructor.name
             });
+
+            // Check if this looks like a connection error and we can retry
+            const isConnectionError =
+                error.message?.includes('connection') ||
+                error.message?.includes('timeout') ||
+                error.message?.includes('network') ||
+                error.message?.includes('fetch') ||
+                error.name === 'TypeError';
+
+            if (isConnectionError && retryCount < maxRetries) {
+                console.log(`🔄 Connection error detected, retrying (${retryCount + 1}/${maxRetries})...`);
+                this.mcpConnected = false; // Mark as disconnected
+
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+
+                try {
+                    await this.reconnectMCP();
+                    // Retry the query
+                    return await this.executeMCPQuery(sqlQuery, retryCount + 1);
+                } catch (reconnectError) {
+                    console.error('❌ Reconnection failed:', reconnectError);
+                    throw new Error(`Database connection lost. Please refresh the page. (${error.message})`);
+                }
+            }
+
             throw new Error(`Database query failed: ${error.message}`);
         }
     }
@@ -869,6 +970,16 @@ function initializeChatbot() {
             console.log('Config loaded successfully');
             chatbot = new WetlandsChatbot(config);
             console.log('Wetlands chatbot initialized');
+
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => {
+                if (chatbot) {
+                    chatbot.stopHealthCheck();
+                    if (chatbot.mcpClient) {
+                        chatbot.mcpClient.close().catch(e => console.warn('Error closing MCP client:', e));
+                    }
+                }
+            });
         })
         .catch(error => {
             console.error('Failed to load chatbot config:', error);
