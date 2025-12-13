@@ -498,18 +498,18 @@ class WetlandsChatbot {
         // Get current model configuration
         const modelConfig = this.getCurrentModelConfig();
 
-        // Detect GPT-OSS model for conditional API usage
-        const isGptOss = this.selectedModel === 'nimbus' || modelConfig.value === 'nimbus';
+        // Check if model explicitly requests Responses API
+        const useResponsesAPI = modelConfig.use_responses_api === true;
 
         // Build full endpoint URL
         let endpoint = modelConfig.endpoint;
-        if (isGptOss) {
-            // GPT-OSS uses Responses API
+        if (useResponsesAPI) {
+            // Model explicitly configured to use Responses API
             if (!endpoint.endsWith('/responses')) {
                 endpoint = endpoint.replace(/\/$/, '') + '/responses';
             }
         } else {
-            // Other models use Chat Completions API
+            // Default: use Chat Completions API
             if (!endpoint.endsWith('/chat/completions')) {
                 endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
             }
@@ -573,8 +573,8 @@ class WetlandsChatbot {
         while (toolCallCount < MAX_TOOL_CALLS) {
             // Build request payload - conditional format based on model
             let requestPayload;
-            if (isGptOss) {
-                // Responses API format for GPT-OSS
+            if (useResponsesAPI) {
+                // Responses API format
                 // Convert messages to a single input string
                 const inputText = currentTurnMessages.map(msg => {
                     if (msg.role === 'system') return `System: ${msg.content}`;
@@ -636,9 +636,9 @@ class WetlandsChatbot {
             const data = await response.json();
             let message;
 
-            if (isGptOss) {
+            if (useResponsesAPI) {
                 // Parse Responses API format
-                // GPT-OSS returns output array with text and function_call items
+                // Responses API returns output array with text and function_call items
                 const output = data.output || [];
 
                 // Extract text content
