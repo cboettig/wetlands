@@ -833,12 +833,18 @@ class WetlandsChatbot {
                 }
 
                 // Remove the running button now that query is complete
-                const proposalDiv = document.querySelector('.tool-call-proposal');
-                if (proposalDiv) {
-                    const approvalButtonsDiv = proposalDiv.querySelector('.tool-approval-buttons');
+                const proposalDivs = document.querySelectorAll('.tool-proposal');
+                if (proposalDivs.length > 0) {
+                    const latestProposal = proposalDivs[proposalDivs.length - 1];
+                    const approvalButtonsDiv = latestProposal.querySelector('.tool-approval-buttons');
                     if (approvalButtonsDiv) {
                         approvalButtonsDiv.remove();
+                        console.log('[UI] Removed running button');
+                    } else {
+                        console.log('[UI] No approval buttons div found');
                     }
+                } else {
+                    console.log('[UI] No proposal div found');
                 }
 
                 // Show results to user
