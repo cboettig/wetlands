@@ -312,6 +312,15 @@
     opacity: 0.7;
 }
 
+/* Thinking indicator when inline in tool results */
+.thinking-inline {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    opacity: 0.7;
+}
+
 /* Tool proposal and results use same style as assistant */
 .chat-message.tool-proposal,
 .chat-message.tool-results {

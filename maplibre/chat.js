@@ -375,6 +375,7 @@ class WetlandsChatbot {
         });
 
         resultsDiv.innerHTML = content;
+        resultsDiv.id = 'latest-tool-results'; // Mark this for adding thinking indicator
         messagesDiv.appendChild(resultsDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -408,12 +409,25 @@ class WetlandsChatbot {
     showThinking() {
         const messagesDiv = document.getElementById('chat-messages');
 
-        const thinkingDiv = document.createElement('div');
-        thinkingDiv.id = 'thinking-indicator';
-        thinkingDiv.className = 'chat-message system';
-        thinkingDiv.innerHTML = '💭 Thinking...';
+        // Check if we should add thinking indicator inside the latest tool results (more compact)
+        const latestToolResults = document.getElementById('latest-tool-results');
+        if (latestToolResults) {
+            // Add thinking indicator inside the tool results box
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinking-indicator';
+            thinkingDiv.className = 'thinking-inline';
+            thinkingDiv.innerHTML = '💭 Thinking...';
+            latestToolResults.appendChild(thinkingDiv);
+            latestToolResults.removeAttribute('id'); // Remove marker so next call doesn't reuse
+        } else {
+            // No tool results yet, create separate box (initial query)
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinking-indicator';
+            thinkingDiv.className = 'chat-message system';
+            thinkingDiv.innerHTML = '💭 Thinking...';
+            messagesDiv.appendChild(thinkingDiv);
+        }
 
-        messagesDiv.appendChild(thinkingDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
@@ -818,8 +832,20 @@ class WetlandsChatbot {
                     });
                 }
 
+                // Remove the running button now that query is complete
+                const proposalDiv = document.querySelector('.tool-call-proposal');
+                if (proposalDiv) {
+                    const approvalButtonsDiv = proposalDiv.querySelector('.tool-approval-buttons');
+                    if (approvalButtonsDiv) {
+                        approvalButtonsDiv.remove();
+                    }
+                }
+
                 // Show results to user
                 this.showToolResults(toolResults, toolCallCount);
+
+                // Show thinking indicator while LLM analyzes the results
+                this.showThinking();
 
                 // Ask if should continue
                 await this.askContinue(toolCallCount);
