@@ -54,7 +54,7 @@ window.MapController = {
         },
         'wdpa': {
             displayName: 'Protected Areas (WDPA)',
-            layerIds: ['wdpa-layer', 'wdpa-outline'],
+            layerIds: ['wdpa-layer'],
             checkboxId: 'wdpa-layer',
             hasLegend: false,
             isVector: true,
@@ -739,22 +739,6 @@ map.on('load', function () {
             }
         });
 
-        map.addLayer({
-            'id': 'wdpa-outline',
-            'type': 'line',
-            'source': 'wdpa-source',
-            'source-layer': 'wdpa',
-            'minzoom': 0,
-            'maxzoom': 22,
-            'paint': {
-                'line-color': '#1B5E20',
-                'line-width': 1.5
-            },
-            'layout': {
-                'visibility': 'none'
-            }
-        });
-
         // Add click popup for WDPA sites
         map.on('click', 'wdpa-layer', (e) => {
             const coordinates = e.lngLat;
@@ -904,7 +888,6 @@ map.on('load', function () {
             wdpaCheckbox.addEventListener('change', function () {
                 const visibility = this.checked ? 'visible' : 'none';
                 map.setLayoutProperty('wdpa-layer', 'visibility', visibility);
-                map.setLayoutProperty('wdpa-outline', 'visibility', visibility);
             });
         }
 
@@ -1083,22 +1066,8 @@ function switchBaseLayer(styleName) {
             }
         });
 
-        map.addLayer({
-            'id': 'wdpa-outline',
-            'type': 'line',
-            'source': 'wdpa-source',
-            'source-layer': 'wdpa',
-            'minzoom': 0,
-            'maxzoom': 22,
-            'paint': {
-                'line-color': '#1B5E20',
-                'line-width': 1.5
-            }
-        });
-
         if (!wdpaVisible) {
             map.setLayoutProperty('wdpa-layer', 'visibility', 'none');
-            map.setLayoutProperty('wdpa-outline', 'visibility', 'none');
             document.getElementById('wdpa-layer').checked = false;
         }
 
