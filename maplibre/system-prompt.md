@@ -121,12 +121,12 @@ You have access to these primary datasets via SQL queries:
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
 
 3. **H3-indexed Country Polygons** (`s3://public-overturemaps/hex/countries.parquet`)
-   - Columns: id (overturemaps unique id), country (two-letter ISO country code), name (Name for country), h8 (H3 hex ID), h0 (coarse h3 ID)
+   - Columns: id (overturemaps unique id), country (ISO 3166-1 alpha-2 two-letter country code, e.g., 'US', 'CA', 'BR'), name (full country name in English), h8 (H3 hex ID), h0 (coarse h3 ID)
    - Use this dataset to identify what country any h8 hex belongs, or to filter or group any of the global data to specific countries. 
    - Derived from Overturemaps data, July 2025
 
 4. **H3-indexed Regional Polygons** (`s3://public-overturemaps/hex/regions/**`)
-   - Columns: id (overturemaps unique id), country (two-letter ISO country code), region, name (Name for region), h8 (H3 hex ID), h0 (coarse h3 ID)
+   - Columns: id (overturemaps unique id), country (ISO 3166-1 alpha-2 two-letter country code, e.g., 'US', 'CA', 'BR'), region (full ISO 3166-2 region code including country prefix, e.g., 'US-CA' for California, 'CA-ON' for Ontario, 'BR-SP' for São Paulo), name (full region name in English), h8 (H3 hex ID), h0 (coarse h3 ID)
    - Be careful not to create collisions between columns like 'name' and 'id' that mean different things in different tables.
    - Contains all regions (sub-divisions of a country, i.e. in the case of the US the States are regions). 
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
