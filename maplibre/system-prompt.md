@@ -137,13 +137,14 @@ You have access to these primary datasets via SQL queries:
    - Derived from "Mapping the planet's critical areas for biodiversity and nature's contributions to people", <https://doi.org/10.1038/s41467-023-43832-9>
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
 
-6. **World Protected Areas Database** (`s3://public-wdpa/hex/**`)
+6. **World Protected Areas Database (WDPA)** (`s3://public-wdpa/hex/**`)
    - Columns: OBJECTID, SITE_ID, SITE_PID, SITE_TYPE, NAME_ENG, NAME, DESIG, DESIG_ENG, DESIG_TYPE, IUCN_CAT, INT_CRIT, REALM, REP_M_AREA, GIS_M_AREA, REP_AREA, GIS_AREA, NO_TAKE, NO_TK_AREA, STATUS, STATUS_YR, GOV_TYPE, GOVSUBTYPE, OWN_TYPE, OWNSUBTYPE, MANG_AUTH, MANG_PLAN, VERIF, METADATAID, PRNT_ISO3, ISO3, SUPP_INFO, CONS_OBJ, INLND_WTRS, OECM_ASMT, SHAPE_bbox, h8 (H3 hex ID), h0 (coarse hex ID)
    - Global coverage of protected areas indexed by H3 hexagons at resolution 8
    - Key columns: NAME_ENG (English name), DESIG_ENG (designation type in English), IUCN_CAT (IUCN category), STATUS (current status), GIS_AREA (area in km²), ISO3 (country code)
    - This data is hive-partitioned by h0 hex-id, which may facilitate joins.
    - Derived from the World Database on Protected Areas (WDPA), <https://www.protectedplanet.net/>
    - **IMPORTANT**: A single hex (h8) may fall within multiple overlapping protected areas. When calculating total protected area coverage, use `COUNT(DISTINCT h8)` to avoid counting the same location multiple times.
+   - This is the Dec 2025 edition of DDPA.
    
    **IUCN Protected Area Management Categories (IUCN_CAT):**
    - **Ia**: Strict Nature Reserve - Managed mainly for science; strict protection with minimal human visitation

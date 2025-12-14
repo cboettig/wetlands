@@ -627,6 +627,7 @@ map.on('load', function () {
                     <strong>${properties.NAME_ENG || properties.NAME || 'Protected Area'}</strong><br>
                     ${properties.DESIG_ENG ? 'Type: ' + properties.DESIG_ENG + '<br>' : ''}
                     ${properties.IUCN_CAT ? 'IUCN Category: ' + properties.IUCN_CAT + '<br>' : ''}
+                    ${properties.OWN_TYPE ? 'Ownership: ' + properties.OWN_TYPE + '<br>' : ''}
                     ${properties.GIS_AREA ? 'Area: ' + properties.GIS_AREA + ' km²<br>' : ''}
                     ${properties.STATUS_YR ? 'Year: ' + properties.STATUS_YR + '<br>' : ''}
                 `)
