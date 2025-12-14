@@ -381,7 +381,7 @@ window.MapController = {
     defaultPaint: {
         'wdpa': {
             'fill-color': '#2E7D32',
-            'fill-opacity': 0.4,
+            'fill-opacity': 0.5,
             'line-color': '#1B5E20',
             'line-width': 1.5
         },
@@ -732,7 +732,7 @@ map.on('load', function () {
             'maxzoom': 22,
             'paint': {
                 'fill-color': '#2E7D32',
-                'fill-opacity': 0.4
+                'fill-opacity': 0.5
             },
             'layout': {
                 'visibility': 'none'
@@ -1062,7 +1062,7 @@ function switchBaseLayer(styleName) {
             'maxzoom': 22,
             'paint': {
                 'fill-color': '#2E7D32',
-                'fill-opacity': 0.4
+                'fill-opacity': 0.5
             }
         });
 
