@@ -10,28 +10,59 @@ data:
         "llm_models": [
             {
                 "value": "glm-4.6",
-                "label": "GLM-4.6",
+                "label": "NRP GLM-4.6",
                 "endpoint": "${LLM_ENDPOINT}",
                 "api_key": "${PROXY_KEY}"
             },
             {
-                "value": "nimbus",
-                "label": "Spark-gpt-oss",
-                "endpoint": "https://vllm-nimbus.carlboettiger.info/v1",
+                "value": "cirrus",
+                "label": "Local Nemotron3-nano",
+                "endpoint": "https://vllm-cirrus.carlboettiger.info/v1",
                 "api_key": "${NIMBUS_API_KEY}"
             },
             {
                 "value": "qwen3",
-                "label": "Qwen3",
+                "label": "NRP Qwen3",
                 "endpoint": "${LLM_ENDPOINT}",
                 "api_key": "${PROXY_KEY}"
             },
             {
                 "value": "kimi",
-                "label": "Kimi",
+                "label": "NRP Kimi",
                 "endpoint": "${LLM_ENDPOINT}",
                 "api_key": "${PROXY_KEY}"
-            }
+            },
+            {
+                "value": "anthropic/claude-sonnet-4.5",
+                "label": "claude",
+                "endpoint": "https://openrouter.ai/api/v1",
+                "api_key": "${OPENROUTER_KEY}"
+            },
+            {
+                "value": "allenai/olmo-3.1-32b-think:free",
+                "label": "olmo3.1-32b",
+                "endpoint": "https://openrouter.ai/api/v1",
+                "api_key": "${OPENROUTER_KEY}"
+            },
+            {
+                "value": "qwen/qwen3-next-80b-a3b-thinking",
+                "label": "qwen3-next",
+                "endpoint": "https://openrouter.ai/api/v1",
+                "api_key": "${OPENROUTER_KEY}"
+            },
+            {
+                "value": "mistralai/devstral-2512:free",
+                "label": "mistral",
+                "endpoint": "https://openrouter.ai/api/v1",
+                "api_key": "${OPENROUTER_KEY}"
+            },
+            {
+                "value": "openai/gpt-oss-120b",
+                "label": "gpt-oss-120b",
+                "endpoint": "https://openrouter.ai/api/v1",
+                "api_key": "${OPENROUTER_KEY}"
+            }            
+            
         ]
     }
 ---

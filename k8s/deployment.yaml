@@ -55,6 +55,11 @@ spec:
             secretKeyRef:
               name: nimbus-api-key
               key: NIMBUS_API_KEY
+        - name: OPENROUTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openrouter-key
+              key: OPENROUTER_KEY
         command:
         - sh
         - -c
