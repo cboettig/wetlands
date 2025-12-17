@@ -528,6 +528,16 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         return new Promise((resolve) => {
             const messagesDiv = document.getElementById('chat-messages');
 
+            // Check if all tool calls are local (map control) tools
+            const allLocalTools = toolCalls.every(tc => this.isLocalTool(tc.function.name));
+
+            // Auto-approve map tools without showing a proposal
+            if (allLocalTools) {
+                console.log('[Map Tools] Auto-approving map control tools');
+                resolve({ approved: true, toolCalls });
+                return;
+            }
+
             const proposalDiv = document.createElement('div');
             proposalDiv.className = 'chat-message tool-proposal';
 
@@ -537,9 +547,6 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             if (reasoning && reasoning.trim()) {
                 content += `<div class="tool-reasoning" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.1);">${marked.parse(reasoning)}</div>`;
             }
-
-            // Check if all tool calls are local (map control) tools
-            const allLocalTools = toolCalls.every(tc => this.isLocalTool(tc.function.name));
 
             toolCalls.forEach((toolCall, index) => {
                 const functionArgs = JSON.parse(toolCall.function.arguments);
@@ -1039,7 +1046,9 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
                 }
 
                 // User approved - execute all tool calls
-                const toolResults = [];
+                const toolResults = []; // Only for MCP tools (database queries)
+                const hasMapTools = message.tool_calls.some(tc => this.isLocalTool(tc.function.name));
+                const hasMCPTools = message.tool_calls.some(tc => !this.isLocalTool(tc.function.name));
 
                 for (const toolCall of message.tool_calls) {
                     console.log('[LLM] Executing tool:', toolCall.function.name);
@@ -1071,14 +1080,13 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
                         try {
                             toolResult = this.executeLocalTool(toolName, functionArgs);
                             console.log(`[Local Tool] ✅ ${toolName} completed`);
-                            toolResults.push(toolResult);
+                            // Don't add map tool results to toolResults array (we won't display them)
                         } catch (err) {
                             console.error('[Local Tool] Execution error:', err);
                             toolResult = JSON.stringify({ success: false, error: err.message });
-                            toolResults.push(toolResult);
                         }
 
-                        // Add tool result to messages
+                        // Add tool result to messages (for LLM context only, not displayed to user)
                         currentTurnMessages.push({
                             role: 'tool',
                             tool_call_id: toolCall.id,
@@ -1142,11 +1150,16 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
                     console.log('[UI] No proposal div found');
                 }
 
-                // Show results to user
-                this.showToolResults(toolResults, toolCallCount);
+                // Show results to user (only for MCP tools)
+                if (hasMCPTools && toolResults.length > 0) {
+                    this.showToolResults(toolResults, toolCallCount);
+                }
 
                 // Show thinking indicator while LLM analyzes the results
-                this.showThinking();
+                // Only show if we have MCP tools that need interpretation
+                if (hasMCPTools) {
+                    this.showThinking();
+                }
 
                 // Ask if should continue
                 await this.askContinue(toolCallCount);
