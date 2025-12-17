@@ -69,14 +69,14 @@ Filters use MapLibre expression syntax (arrays):
 
 **Ramsar Sites:**
 - `ramsarid` - Unique Ramsar site ID (number)
-- `Site name` / `officialna` - Official site name (string)
+- `Site name` - Official site name (string)
 - `Region` - Geographic region (string)
-- `Country` / `country_en` - Country name (string)
+- `Country` - Country name (string)
 - `Territory` - Territory name (string)
 - `iso3` - Country code (3-letter)
 - `Designation date` - Date of Ramsar designation (string)
 - `Last publication date` - Last update date (string)
-- `Area (ha)` / `area_off` - Area in hectares (number)
+- `Area (ha)` - Area in hectares (number)
 - `Latitude` / `Longitude` - Coordinates (number)
 - `Annotated summary` - Site description (string)
 - `Criterion1` through `Criterion9` - Boolean flags for Ramsar criteria

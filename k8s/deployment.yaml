@@ -19,6 +19,13 @@ spec:
       labels:
         app: wetlands-maplibre
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: stratus1.nrp-espm.berkeley.edu
+      tolerations:
+      - key: "nautilus.io/issue"
+        operator: "Equal"
+        value: "1476"
+        effect: "NoSchedule"
       initContainers:
       - name: git-clone
         image: alpine/git:latest

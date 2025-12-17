@@ -450,10 +450,10 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         this.addMessage(
             'assistant',
             'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
-            '* "How many hectares of peatlands are there?"\n' +
             '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
             '* "Show state-owned protected areas colored by IUCN category"\n' +
-            '* "Filter Ramsar sites to those meeting Criterion 1 and 2"'
+            '* "Compute carbon stored in each hydrobasin in Spain as a csv"\n' +
+            '* "Filter Ramsar sites to those meeting Criterion 1 and 2."'
         );
     }
 
