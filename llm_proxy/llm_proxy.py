@@ -186,12 +186,23 @@ async def options_chat():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint (logging suppressed)"""
     return {
         "status": "healthy",
         "llm_endpoint": LLM_ENDPOINT,
         "api_key_configured": bool(LLM_API_KEY)
     }
+
+# Configure logging to filter out /health endpoint
+import logging
+from uvicorn.config import LOGGING_CONFIG
+
+class HealthCheckFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return '/health' not in record.getMessage()
+
+# Apply filter to uvicorn access logger
+logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 
 @app.get("/")
 async def root():

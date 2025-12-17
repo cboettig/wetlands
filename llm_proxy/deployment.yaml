@@ -22,7 +22,7 @@ spec:
       containers:
       - name: llm-proxy
         image: astral/uv:python3.12-bookworm-slim
-        command: ["uvx", "--from", "fastapi", "--with", "uvicorn", "--with", "httpx", "--with", "pydantic", "uvicorn", "llm_proxy:app", "--host", "0.0.0.0", "--port", "8002"]
+        command: ["uvx", "--from", "uvicorn", "--with", "fastapi", "--with", "httpx", "--with", "pydantic", "uvicorn", "llm_proxy:app", "--host", "0.0.0.0", "--port", "8002"]
         workingDir: /app
         ports:
         - containerPort: 8002
