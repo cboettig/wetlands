@@ -38,7 +38,6 @@ window.MapController = {
             filterableProperties: {
                 'ramsarid': { type: 'number', description: 'Unique Ramsar site ID' },
                 'Site name': { type: 'string', description: 'Official site name' },
-                'officialna': { type: 'string', description: 'Official site name (legacy field)' },
                 'Region': { type: 'string', description: 'Geographic region' },
                 'Country': { type: 'string', description: 'Country name' },
                 'Territory': { type: 'string', description: 'Territory name' },
@@ -47,7 +46,6 @@ window.MapController = {
                 'Designation date': { type: 'string', description: 'Date of Ramsar designation' },
                 'Last publication date': { type: 'string', description: 'Last update date' },
                 'Area (ha)': { type: 'number', description: 'Area in hectares' },
-                'area_off': { type: 'number', description: 'Official area in hectares (legacy field)' },
                 'Latitude': { type: 'number', description: 'Latitude coordinate' },
                 'Longitude': { type: 'number', description: 'Longitude coordinate' },
                 'Annotated summary': { type: 'string', description: 'Site description' },

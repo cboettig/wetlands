@@ -450,10 +450,10 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         this.addMessage(
             'assistant',
             'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
-            '* "How many hectares of peatlands are there?"\n' +
             '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
             '* "Show state-owned protected areas colored by IUCN category"\n' +
-            '* "Filter Ramsar sites to those meeting Criterion 1 and 2"'
+            '* "Compute carbon stored in each hydrobasin in Spain as a csv"\n' +
+            '* "Filter Ramsar sites to those meeting Criterion 1 and 2."'
         );
     }
 
@@ -523,8 +523,48 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    // Show a tool call proposal and wait for user approval
-    async showToolCallProposal(toolCalls, iterationNumber, reasoning) {
+    // Execute map tools immediately and show what was done
+    // Show brief UI feedback for map tool execution (non-blocking)
+    showMapToolExecution(toolName, functionArgs) {
+        const messagesDiv = document.getElementById('chat-messages');
+        const mapActionDiv = document.createElement('div');
+        mapActionDiv.className = 'chat-message assistant';
+        mapActionDiv.style.opacity = '0.8';
+        mapActionDiv.style.fontSize = '14px';
+
+        // Create a user-friendly description
+        const actionDesc = this.describeMapAction(toolName, functionArgs);
+        mapActionDiv.innerHTML = `🗺️ ${actionDesc}`;
+
+        messagesDiv.appendChild(mapActionDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Create user-friendly descriptions of map actions
+    describeMapAction(toolName, args) {
+        switch (toolName) {
+            case 'toggle_map_layer':
+                const action = args.action === 'show' ? 'Showing' : args.action === 'hide' ? 'Hiding' : 'Toggling';
+                return `${action} ${args.layer} layer`;
+            case 'filter_map_layer':
+                return `Filtering ${args.layer} layer`;
+            case 'clear_map_filter':
+                return `Clearing filter on ${args.layer} layer`;
+            case 'set_layer_paint':
+                return `Styling ${args.layer} layer`;
+            case 'reset_layer_paint':
+                return `Resetting ${args.layer} layer style`;
+            case 'get_map_layers':
+                return `Checking map layers`;
+            case 'get_layer_filter_info':
+                return `Getting filter info for ${args.layer}`;
+            default:
+                return `${toolName}`;
+        }
+    }
+
+    // Show a tool call proposal and wait for user approval (for MCP/SQL tools only)
+    async showToolCallProposal(toolCalls) {
         return new Promise((resolve) => {
             const messagesDiv = document.getElementById('chat-messages');
 
@@ -533,48 +573,26 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
 
             let content = '';
 
-            // Add reasoning if present
-            if (reasoning && reasoning.trim()) {
-                content += `<div class="tool-reasoning" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.1);">${marked.parse(reasoning)}</div>`;
-            }
-
-            // Check if all tool calls are local (map control) tools
-            const allLocalTools = toolCalls.every(tc => this.isLocalTool(tc.function.name));
-
-            toolCalls.forEach((toolCall, index) => {
+            // Show tool calls for approval
+            toolCalls.forEach((toolCall) => {
                 const functionArgs = JSON.parse(toolCall.function.arguments);
-                const isLocal = this.isLocalTool(toolCall.function.name);
-
-                if (isLocal) {
-                    // Format local tool call (map control)
-                    const argsDisplay = JSON.stringify(functionArgs, null, 2);
-                    content += `
-                        <div class="tool-call-item">
-                            <details>
-                                <summary class="query-summary-btn" style="cursor: pointer; user-select: none;">🗺️ ${toolCall.function.name}</summary>
-                                <pre style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; overflow-x: auto;"><code class="language-json">${this.escapeHtml(argsDisplay)}</code></pre>
-                            </details>
-                        </div>
-                    `;
-                } else {
-                    // Format MCP tool call (SQL query)
-                    const sqlQuery = functionArgs.query || 'No query provided';
-                    content += `
-                        <div class="tool-call-item">
-                            <details>
-                                <summary class="query-summary-btn" style="cursor: pointer; user-select: none;">${toolCall.function.name}</summary>
-                                <pre style="margin-top: 8px; padding: 0; border-radius: 4px; overflow-x: auto;"><code class="language-sql">${this.escapeHtml(sqlQuery)}</code></pre>
-                            </details>
-                        </div>
-                    `;
-                }
+                // For query tools, show the SQL; otherwise show JSON args
+                const displayContent = functionArgs.query || JSON.stringify(functionArgs, null, 2);
+                const language = functionArgs.query ? 'sql' : 'json';
+                content += `
+                    <div class="tool-call-item">
+                        <details>
+                            <summary class="query-summary-btn" style="cursor: pointer; user-select: none;">${toolCall.function.name}</summary>
+                            <pre style="margin-top: 8px; padding: 0; border-radius: 4px; overflow-x: auto;"><code class="language-${language}">${this.escapeHtml(displayContent)}</code></pre>
+                        </details>
+                    </div>
+                `;
             });
 
-            // Add approval button with context-appropriate label
-            const buttonLabel = allLocalTools ? '✓ Update Map' : '✓ Run Query';
+            // Add approval button
             content += `
                 <div class="tool-approval-buttons" style="margin-top: 12px;">
-                    <button class="approve-btn" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">${buttonLabel}</button>
+                    <button class="approve-btn" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">✓ Run Query</button>
                 </div>
             `;
 
@@ -614,7 +632,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
     }
 
     // Show tool call results
-    showToolResults(results, iterationNumber) {
+    showToolResults(results) {
         const messagesDiv = document.getElementById('chat-messages');
 
         const resultsDiv = document.createElement('div');
@@ -637,8 +655,8 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    // Ask if user wants to continue with another tool call
-    async askContinue(iterationNumber) {
+    // Brief pause after showing results before LLM continues
+    async askContinue() {
         return new Promise((resolve) => {
             // Instead of a separate message, show the processing message inside the most recent query result section
             const resultsDiv = document.querySelector('.tool-results details:last-of-type');
@@ -1021,71 +1039,77 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
                 toolCallCount++;
                 console.log(`[LLM] Tool calls requested (${toolCallCount}/${MAX_TOOL_CALLS}):`, message.tool_calls.length);
 
-                // Clear thinking indicator
-                this.clearThinking();
+                // Check if there are any MCP tools that need approval
+                const hasMCPTools = message.tool_calls.some(tc => !this.isLocalTool(tc.function.name));
+                const mcpToolCalls = message.tool_calls.filter(tc => !this.isLocalTool(tc.function.name));
 
-                // Show tool call proposal and wait for approval
-                // Pass message.content (reasoning) to be displayed inside the proposal
-                const approval = await this.showToolCallProposal(message.tool_calls, toolCallCount, message.content);
+                // Show approval prompt for MCP tools (SQL queries) if any
+                if (hasMCPTools) {
+                    // Clear thinking before showing approval UI
+                    this.clearThinking();
 
-                if (!approval.approved) {
-                    console.log('[User] Tool call rejected by user');
-                    this.addMessage('system', 'Tool call cancelled. You can ask a different question or modify your request.');
-                    return {
-                        response: null,
-                        sqlQueries: this.currentTurnQueries,
-                        cancelled: true
-                    };
+                    const approval = await this.showToolCallProposal(mcpToolCalls);
+
+                    if (!approval.approved) {
+                        console.log('[User] Tool call rejected by user');
+                        this.addMessage('system', 'Tool call cancelled. You can ask a different question or modify your request.');
+                        return {
+                            response: null,
+                            sqlQueries: this.currentTurnQueries,
+                            cancelled: true
+                        };
+                    }
+                } else {
+                    // Map tools only - clear thinking before executing
+                    this.clearThinking();
                 }
 
-                // User approved - execute all tool calls
+                // Execute ALL tool calls in the order LLM requested them
+                // This maintains proper tool_call_id ordering for the LLM
                 const toolResults = [];
 
                 for (const toolCall of message.tool_calls) {
-                    console.log('[LLM] Executing tool:', toolCall.function.name);
-                    console.log('[LLM] Tool arguments:', toolCall.function.arguments);
-                    console.log('[LLM] Tool call ID:', toolCall.id);
+                    const toolName = toolCall.function.name;
+                    const isMapTool = this.isLocalTool(toolName);
+
+                    console.log(`[Tool] Executing: ${toolName} (${isMapTool ? 'map' : 'MCP'})`);
 
                     let functionArgs;
                     try {
                         functionArgs = JSON.parse(toolCall.function.arguments);
                     } catch (e) {
-                        console.error('[LLM] Failed to parse tool arguments:', e);
+                        console.error(`[Tool] Failed to parse arguments for ${toolName}:`, e);
                         const errorMsg = "Error: Failed to parse tool arguments. Please ensure arguments are valid JSON.";
                         currentTurnMessages.push({
                             role: 'tool',
                             tool_call_id: toolCall.id,
                             content: errorMsg
                         });
-                        toolResults.push(errorMsg);
+                        if (!isMapTool) toolResults.push(errorMsg);
                         continue;
                     }
 
-                    // Check if this is a local tool (map control) or MCP tool (database query)
-                    const toolName = toolCall.function.name;
+                    if (isMapTool) {
+                        // Execute map tool silently - show brief UI feedback
+                        this.showMapToolExecution(toolName, functionArgs);
 
-                    if (this.isLocalTool(toolName)) {
-                        // Execute local tool (no MCP needed)
-                        console.log(`[Local Tool] Executing ${toolName}...`);
                         let toolResult;
                         try {
                             toolResult = this.executeLocalTool(toolName, functionArgs);
-                            console.log(`[Local Tool] ✅ ${toolName} completed`);
-                            toolResults.push(toolResult);
+                            console.log(`[Map Tool] ✅ ${toolName} completed`);
                         } catch (err) {
-                            console.error('[Local Tool] Execution error:', err);
+                            console.error('[Map Tool] Execution error:', err);
                             toolResult = JSON.stringify({ success: false, error: err.message });
-                            toolResults.push(toolResult);
                         }
 
-                        // Add tool result to messages
+                        // Add result to conversation (for LLM context, not displayed to user)
                         currentTurnMessages.push({
                             role: 'tool',
                             tool_call_id: toolCall.id,
                             content: toolResult
                         });
                     } else {
-                        // This is an MCP tool (database query)
+                        // Execute MCP tool (database query)
                         // Capture the SQL query
                         if (functionArgs.query) {
                             this.currentTurnQueries.push(functionArgs.query);
@@ -1094,7 +1118,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
 
                         // Check if the query argument is missing or empty
                         if (!functionArgs.query || functionArgs.query.trim() === '') {
-                            console.warn('[LLM] ⚠️  WARNING: Tool call missing or empty "query" argument!');
+                            console.warn('[MCP] ⚠️  WARNING: Tool call missing or empty "query" argument!');
                             const errorMsg = "Error: The 'query' argument was missing or empty. Please provide a valid SQL query.";
                             currentTurnMessages.push({
                                 role: 'tool',
@@ -1127,29 +1151,33 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
                     }
                 }
 
-                // Remove the running button now that query is complete
-                const proposalDivs = document.querySelectorAll('.tool-proposal');
-                if (proposalDivs.length > 0) {
-                    const latestProposal = proposalDivs[proposalDivs.length - 1];
-                    const approvalButtonsDiv = latestProposal.querySelector('.tool-approval-buttons');
-                    if (approvalButtonsDiv) {
-                        approvalButtonsDiv.remove();
-                        console.log('[UI] Removed running button');
-                    } else {
-                        console.log('[UI] No approval buttons div found');
+                // Remove the running button now that execution is complete (only if there were MCP tools)
+                if (hasMCPTools) {
+                    const proposalDivs = document.querySelectorAll('.tool-proposal');
+                    if (proposalDivs.length > 0) {
+                        const latestProposal = proposalDivs[proposalDivs.length - 1];
+                        const approvalButtonsDiv = latestProposal.querySelector('.tool-approval-buttons');
+                        if (approvalButtonsDiv) {
+                            approvalButtonsDiv.remove();
+                            console.log('[UI] Removed running button');
+                        }
                     }
+
+                    // Show results to user (for MCP tools only)
+                    if (toolResults.length > 0) {
+                        this.showToolResults(toolResults);
+                    }
+
+                    // Show thinking indicator while LLM analyzes the results
+                    this.showThinking();
+
+                    // Ask if should continue
+                    await this.askContinue();
                 } else {
-                    console.log('[UI] No proposal div found');
+                    // Map tools only - show thinking before next LLM turn
+                    console.log('[Map Tools] Map tools executed, continuing to next LLM turn');
+                    this.showThinking();
                 }
-
-                // Show results to user
-                this.showToolResults(toolResults, toolCallCount);
-
-                // Show thinking indicator while LLM analyzes the results
-                this.showThinking();
-
-                // Ask if should continue
-                await this.askContinue(toolCallCount);
 
                 // Loop continues to next iteration to send tool results back to LLM
             } else {
