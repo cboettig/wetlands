@@ -25,6 +25,7 @@ app.add_middleware(
         "https://cboettig.github.io",
         "https://boettiger-lab.github.io",
         "https://wetlands.nrp-nautilus.io",  # K8s deployment
+        "https://nature.nrp-nautilus.io",  # K8s deployment
         "http://localhost:8000",  # For local testing
     ],
     allow_credentials=False,
@@ -236,36 +237,10 @@ async def proxy_chat(request: ChatRequest, authorization: Optional[str] = Header
             # 500 should only be for internal proxy errors
             raise HTTPException(status_code=502, detail=f"Connection error: {error_detail}")
 
-@app.post("/llm")
-async def proxy_llm(request: Request):
-    """Generic LLM endpoint proxy"""
-    body = await request.body()
-    headers = dict(request.headers)
-    # Remove host header to avoid issues
-    headers.pop("host", None)
-    # Add API key
-    headers["Authorization"] = f"Bearer {LLM_API_KEY}"
-    
-    async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minutes to match ingress timeout
-        try:
-            resp = await client.post(LLM_ENDPOINT, content=body, headers=headers)
-            return Response(
-                content=resp.content, 
-                status_code=resp.status_code, 
-                media_type=resp.headers.get("content-type", "application/json")
-            )
-        except Exception as e:
-            print(f"ERROR in /llm endpoint: {type(e).__name__}: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-@app.options("/llm")
-async def options_llm():
-    """Handle CORS preflight for /llm endpoint"""
-    return Response(status_code=204)
-
+@app.options("/v1/chat/completions")
 @app.options("/chat")
 async def options_chat():
-    """Handle CORS preflight for /chat endpoint"""
+    """Handle CORS preflight for chat endpoints"""
     return Response(status_code=204)
 
 @app.get("/health")
@@ -296,11 +271,13 @@ logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 async def root():
     """Root endpoint"""
     return {
-        "service": "LLM Proxy for Wetlands Chatbot",
+        "service": "Multi-Provider LLM Proxy for Wetlands Chatbot",
+        "version": "2.0",
+        "providers": list(PROVIDERS.keys()),
         "endpoints": {
-            "/chat": "POST - Main chat endpoint with structured request",
-            "/llm": "POST - Generic LLM proxy endpoint",
-            "/health": "GET - Health check"
+            "/v1/chat/completions": "POST - OpenAI-compatible chat completions",
+            "/chat": "POST - Legacy chat endpoint",
+            "/health": "GET - Health check with provider status"
         }
     }
 
