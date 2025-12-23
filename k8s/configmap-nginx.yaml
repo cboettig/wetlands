@@ -15,7 +15,7 @@ data:
                 "api_key": "${PROXY_KEY}"
             },
             {
-                "value": "nimbus",
+                "value": "nemotron",
                 "label": "spark nemotron3-nano",
                 "endpoint": "${LLM_ENDPOINT}",
                 "api_key": "${PROXY_KEY}"
