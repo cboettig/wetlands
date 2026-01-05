@@ -304,7 +304,8 @@ CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook',
     URL_STYLE 'path', USE_SSL 'false', KEY_ID '', SECRET '');
 CREATE OR REPLACE SECRET outputs (
     TYPE S3, ENDPOINT 's3-west.nrp-nautilus.io',
-    URL_STYLE 'path', SCOPE 's3://public-outputs'
+    URL_STYLE 'path', SCOPE 's3://public-output',
+    KEY_ID '', SECRET ''
 );
 
 -- Query bird species in forested wetlands in Costa Rica and output as CSV
