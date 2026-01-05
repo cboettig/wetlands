@@ -328,17 +328,17 @@ COPY (
   AND t.class = 'Aves'  -- Birds only
   AND pos.rank = 'species'
   GROUP BY t.scientificName, t.vernacularName, t.family, t.order
-) TO 's3://public-outputs/wetlands/cr_forested_wetland_birds.csv'
+) TO 's3://public-output/wetlands/cr_forested_wetland_birds.csv'
 (FORMAT CSV, HEADER, OVERWRITE_OR_IGNORE);
 ```
 
-Then provide the user with download link: `https://s3-west.nrp-nautilus.io/public-outputs/wetlands/cr_forested_wetland_birds.csv`
+Then provide the user with download link: `https://s3-west.nrp-nautilus.io/public-output/wetlands/cr_forested_wetland_birds.csv`
 
 **Key Points:**
 - Use `h3_cell_to_parent(w.h8, 4)` to convert h8 hexagons to their h4 parents
 - The target resolution (4 in this case) must match the resolution in the coarser dataset
 - Join the taxonomy table to filter by taxonomic class (birds = "Aves") and get scientific/common names
-- Use the `COPY ... TO` syntax to output results as CSV to the public-outputs bucket
+- Use the `COPY ... TO` syntax to output results as CSV to the public-output bucket
 - Multiple h8 hexagons will map to the same h4 parent, which is expected behavior
 - For large datasets like iNaturalist, filter by country first to avoid memory issues
 
@@ -395,7 +395,9 @@ CREATE OR REPLACE SECRET outputs (
     TYPE S3,
     ENDPOINT 's3-west.nrp-nautilus.io',
     URL_STYLE 'path',
-    SCOPE 's3://public-outputs'
+    SCOPE 's3://public-output',
+    KEY_ID '',
+    SECRET ''
 );
 ```
 
@@ -412,17 +414,17 @@ CREATE OR REPLACE SECRET outputs (
 
 **Generating Output data:**
 When results cannot be easily summarized or the user specifically asks for it, 
-you can provide the user output data as a CSV file by writing to "public-outputs"
+you can provide the user output data as a CSV file by writing to "public-output"
 bucket and then sharing the corresponding public URL with the user.
 For instance, if you write a table like
 
 ```sql
 COPY (SELECT * FROM ...)
-TO 's3://public-outputs/wetlands/example-2025-01-01T10:10:10.csv'
+TO 's3://public-output/wetlands/example-2025-01-01T10:10:10.csv'
 (FORMAT CSV, HEADER, OVERWRITE_OR_IGNORE);
 ```
 
-then direct the user to download this data at `https://s3-west.nrp-nautilus.io/public-outputs/wetlands/example-2025-01-01T10:10:10.csv` .  
+then direct the user to download this data at `https://s3-west.nrp-nautilus.io/public-output/wetlands/example-2025-01-01T10:10:10.csv` .  
 
 
 ## Best Practices
@@ -549,7 +551,9 @@ CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook',
     URL_STYLE 'path', USE_SSL 'false', KEY_ID '', SECRET '');
 CREATE OR REPLACE SECRET outputs (
     TYPE S3, ENDPOINT 's3-west.nrp-nautilus.io',
-    URL_STYLE 'path', SCOPE 's3://public-outputs'
+    URL_STYLE 'path', SCOPE 's3://public-output',
+    KEY_ID '',
+    SECRET ''
 );
 
 -- Query
@@ -573,7 +577,9 @@ CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook',
     URL_STYLE 'path', USE_SSL 'false', KEY_ID '', SECRET '');
 CREATE OR REPLACE SECRET outputs (
     TYPE S3, ENDPOINT 's3-west.nrp-nautilus.io',
-    URL_STYLE 'path', SCOPE 's3://public-outputs'
+    URL_STYLE 'path', SCOPE 's3://public-output',
+    KEY_ID '',
+    SECRET ''
 );
 
 -- Query
