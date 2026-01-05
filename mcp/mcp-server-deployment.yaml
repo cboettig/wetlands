@@ -19,13 +19,6 @@ spec:
       labels:
         app: mcp-server
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: stratus1.nrp-espm.berkeley.edu
-      tolerations:
-      - key: "nautilus.io/issue"
-        operator: "Equal"
-        value: "1476"
-        effect: "NoSchedule"
       containers:
       # Nginx sidecar to add CORS headers
       - name: nginx-cors-proxy

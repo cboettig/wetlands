@@ -1,8 +1,12 @@
 {
 	"servers": {
 		"wetlands-biodiversity": {
-			"type": "sse",
+			"type": "http",
 			"url": "https://biodiversity-mcp.nrp-nautilus.io/sse"
+		},
+		"map-server": {
+			"command": ".venv/bin/mcp-map-server",
 		}
-	}
+	},
+	"inputs": []
 }

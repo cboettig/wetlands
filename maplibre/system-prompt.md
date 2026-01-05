@@ -303,7 +303,7 @@ INSTALL h3 FROM community; LOAD h3;
 CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook', 
     URL_STYLE 'path', USE_SSL 'false', KEY_ID '', SECRET '');
 CREATE OR REPLACE SECRET outputs (
-    TYPE S3, ENDPOINT 'minio.carlboettiger.info',
+    TYPE S3, ENDPOINT 's3-west.nrp-nautilus.io',
     URL_STYLE 'path', SCOPE 's3://public-outputs'
 );
 
@@ -331,7 +331,7 @@ COPY (
 (FORMAT CSV, HEADER, OVERWRITE_OR_IGNORE);
 ```
 
-Then provide the user with download link: `https://minio.carlboettiger.info/public-outputs/wetlands/cr_forested_wetland_birds.csv`
+Then provide the user with download link: `https://s3-west.nrp-nautilus.io/public-outputs/wetlands/cr_forested_wetland_birds.csv`
 
 **Key Points:**
 - Use `h3_cell_to_parent(w.h8, 4)` to convert h8 hexagons to their h4 parents
@@ -392,7 +392,7 @@ CREATE OR REPLACE SECRET s3 (
 -- ALSO configure S3 connection to with write access to provide CSV outputs. 
 CREATE OR REPLACE SECRET outputs (
     TYPE S3,
-    ENDPOINT 'minio.carlboettiger.info',
+    ENDPOINT 's3-west.nrp-nautilus.io',
     URL_STYLE 'path',
     SCOPE 's3://public-outputs'
 );
@@ -421,7 +421,7 @@ TO 's3://public-outputs/wetlands/example-2025-01-01T10:10:10.csv'
 (FORMAT CSV, HEADER, OVERWRITE_OR_IGNORE);
 ```
 
-then direct the user to download this data at `https://minio.carlboettiger.info/public-outputs/wetlands/example-2025-01-01T10:10:10.csv` .  
+then direct the user to download this data at `https://s3-west.nrp-nautilus.io/public-outputs/wetlands/example-2025-01-01T10:10:10.csv` .  
 
 
 ## Best Practices
@@ -547,7 +547,7 @@ INSTALL h3 FROM community; LOAD h3;
 CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook', 
     URL_STYLE 'path', USE_SSL 'false', KEY_ID '', SECRET '');
 CREATE OR REPLACE SECRET outputs (
-    TYPE S3, ENDPOINT 'minio.carlboettiger.info',
+    TYPE S3, ENDPOINT 's3-west.nrp-nautilus.io',
     URL_STYLE 'path', SCOPE 's3://public-outputs'
 );
 
@@ -571,7 +571,7 @@ INSTALL h3 FROM community; LOAD h3;
 CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook', 
     URL_STYLE 'path', USE_SSL 'false', KEY_ID '', SECRET '');
 CREATE OR REPLACE SECRET outputs (
-    TYPE S3, ENDPOINT 'minio.carlboettiger.info',
+    TYPE S3, ENDPOINT 's3-west.nrp-nautilus.io',
     URL_STYLE 'path', SCOPE 's3://public-outputs'
 );
 
