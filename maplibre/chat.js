@@ -415,6 +415,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         ).join('') || '<option value="kimi">Kimi</option>';
 
         container.innerHTML = `
+            <div id="chat-resize-handle"></div>
             <div id="chat-header">
                 <h3>🦆 Wetlands Data Assistant</h3>
                 <button id="chat-toggle">−</button>
@@ -431,6 +432,9 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             </div>
         `;
         document.body.appendChild(container);
+
+        // Setup resize handle
+        this.setupResizeHandle(container);
 
         // Set initial model value
         document.getElementById('model-selector').value = this.selectedModel;
@@ -455,6 +459,44 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             '* "Compute carbon stored in each hydrobasin in Spain as a csv"\n' +
             '* "Filter Ramsar sites to those meeting Criterion 1 and 2."'
         );
+    }
+
+    setupResizeHandle(container) {
+        const resizeHandle = document.getElementById('chat-resize-handle');
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = parseInt(window.getComputedStyle(container).width, 10);
+            startHeight = parseInt(window.getComputedStyle(container).height, 10);
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            // Calculate new dimensions (resize from top-left corner)
+            const deltaX = startX - e.clientX;
+            const deltaY = startY - e.clientY;
+
+            const newWidth = startWidth + deltaX;
+            const newHeight = startHeight + deltaY;
+
+            // Apply constraints
+            if (newWidth >= 300 && newWidth <= 800) {
+                container.style.width = newWidth + 'px';
+            }
+            if (newHeight >= 300 && newHeight <= 800) {
+                container.style.height = newHeight + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+        });
     }
 
     toggleChat() {
