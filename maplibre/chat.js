@@ -498,7 +498,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             if (newWidth >= 300 && newWidth <= 1600) {
                 container.style.width = newWidth + 'px';
             }
-            if (newHeight >= 300 && newHeight <= 800) {
+            if (newHeight >= 300 && newHeight <= 1200) {
                 container.style.height = newHeight + 'px';
             }
         });

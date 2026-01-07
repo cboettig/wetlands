@@ -6,10 +6,10 @@
     right: 20px;
     width: 400px;
     min-width: 300px;
-    max-width: 800px;
+    max-width: 1600px;
     height: 600px;
     min-height: 300px;
-    max-height: 800px;
+    max-height: 1200px;
     display: flex;
     flex-direction: column;
     background: rgba(255, 255, 255, 0);
