@@ -405,6 +405,12 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             });
         }
 
+        // Clear any existing chat container to ensure fresh start on page load
+        const existingContainer = document.getElementById('chat-container');
+        if (existingContainer) {
+            existingContainer.remove();
+        }
+
         // Chat container
         const container = document.createElement('div');
         container.id = 'chat-container';
@@ -418,6 +424,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             <div id="chat-resize-handle"></div>
             <div id="chat-header">
                 <h3>🦆 Wetlands Data Assistant</h3>
+                <button id="chat-clear" title="Clear chat history">🗑️</button>
                 <button id="chat-toggle">−</button>
             </div>
             <div id="chat-messages"></div>
@@ -441,6 +448,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
 
         // Event listeners
         document.getElementById('chat-toggle').addEventListener('click', () => this.toggleChat());
+        document.getElementById('chat-clear').addEventListener('click', () => this.clearChat());
         document.getElementById('chat-send').addEventListener('click', () => this.sendMessage());
         document.getElementById('chat-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) this.sendMessage();
@@ -504,6 +512,28 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         const toggle = document.getElementById('chat-toggle');
         container.classList.toggle('collapsed');
         toggle.textContent = container.classList.contains('collapsed') ? '+' : '−';
+    }
+
+    clearChat() {
+        // Clear message history
+        this.messages = [];
+        this.currentTurnQueries = [];
+
+        // Clear DOM
+        const messagesDiv = document.getElementById('chat-messages');
+        messagesDiv.innerHTML = '';
+
+        // Show welcome message again
+        this.addMessage(
+            'assistant',
+            'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
+            '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
+            '* "Show state-owned protected areas colored by IUCN category"\n' +
+            '* "Compute carbon stored in each hydrobasin in Spain as a csv"\n' +
+            '* "Filter Ramsar sites to those meeting Criterion 1 and 2."'
+        );
+
+        console.log('✓ Chat history cleared');
     }
 
     addMessage(role, content, metadata = {}) {
