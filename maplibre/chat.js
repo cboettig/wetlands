@@ -424,7 +424,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             <div id="chat-resize-handle"></div>
             <div id="chat-header">
                 <h3>🦆 Wetlands Data Assistant</h3>
-                <button id="chat-clear" title="Clear chat history">🗑️</button>
+                <button id="chat-clear" title="Clear chat history" style="background: transparent; border: none; font-size: 18px; cursor: pointer; padding: 4px 8px;">🔄</button>
                 <button id="chat-toggle">−</button>
             </div>
             <div id="chat-messages"></div>
@@ -463,9 +463,10 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             'assistant',
             'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
             '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
-            '* "Show state-owned protected areas colored by IUCN category"\n' +
-            '* "Compute carbon stored in each hydrobasin in Spain as a csv"\n' +
-            '* "Filter Ramsar sites to those meeting Criterion 1 and 2."'
+            '* "Show Ramsar sites to those meeting Criterion 9; explain the criterion"\n' +
+            '* "Color Ramsar sites by the number of criteria they meet"\n' +
+            '* "Rank the top 10 level-3 hydrobasins by wetland extent, carbon, and NCP"\n'
+
         );
     }
 
@@ -494,7 +495,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             const newHeight = startHeight + deltaY;
 
             // Apply constraints
-            if (newWidth >= 300 && newWidth <= 800) {
+            if (newWidth >= 300 && newWidth <= 1600) {
                 container.style.width = newWidth + 'px';
             }
             if (newHeight >= 300 && newHeight <= 800) {
