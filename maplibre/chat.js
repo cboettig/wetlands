@@ -465,7 +465,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
             '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
             '* "Show Ramsar sites to those meeting Criterion 9; explain the criterion"\n' +
             '* "Color Ramsar sites by the number of criteria they meet"\n' +
-            '* "Rank the top 10 level-3 hydrobasins by wetland extent, carbon, and NCP. Explain methodology and show on map."\n'
+            '* "Rank the top 10 level-3 hydrobasins by wetland extent, carbon, and NCP. Explain methodology and show them on map."\n'
 
         );
     }

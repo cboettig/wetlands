@@ -297,7 +297,6 @@ The iNaturalist dataset only has h0-h4 columns, while wetlands data has h8. This
 SET THREADS=100;
 SET preserve_insertion_order=false;
 SET enable_object_cache=true;
-SET temp_directory='/tmp';
 INSTALL httpfs; LOAD httpfs;
 INSTALL h3 FROM community; LOAD h3;
 CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook', 
@@ -372,8 +371,6 @@ SET THREADS=100;
 SET preserve_insertion_order=false;
 -- Cache S3 metadata to speed up repeated queries
 SET enable_object_cache=true;
--- Use local disk for temp storage if memory is exceeded
-SET temp_directory='/tmp';
 
 -- Install and load httpfs extension for S3 access
 INSTALL httpfs;
@@ -406,8 +403,8 @@ CREATE OR REPLACE SECRET outputs (
 - `SET THREADS=100` - Enables parallel S3 reads (I/O bound, not CPU bound)
 - `SET preserve_insertion_order=false` - Allows faster parallel aggregation
 - `SET enable_object_cache=true` - Reduces S3 metadata requests
-- `SET temp_directory='/tmp'` - Uses fast local disk for spillover
 - `INSTALL/LOAD httpfs` - Required for S3/HTTP access to remote parquet files
+- Temp directory: DuckDB will use the `TMPDIR` environment variable if set, or system default otherwise
 - `USE_SSL 'false'` - Must be USE_SSL (with underscore, not a space!)
 - `CREATE SECRET s3` - Configures connection to the MinIO S3-compatible storage
 - `KEY_ID`, `SECRET` are empty string by default, which tells duckdb to use anonymous access to data on `rook-ceph-rgw-nautiluss3.rook`
@@ -544,7 +541,6 @@ These optimizations typically provide **5-20x speedup** by:
 SET THREADS=100;
 SET preserve_insertion_order=false;
 SET enable_object_cache=true;
-SET temp_directory='/tmp';
 INSTALL httpfs; LOAD httpfs;
 INSTALL h3 FROM community; LOAD h3;
 CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook', 
@@ -570,7 +566,6 @@ WHERE w.Z > 0 GROUP BY c.category ORDER BY area_hectares DESC;
 SET THREADS=100;
 SET preserve_insertion_order=false;
 SET enable_object_cache=true;
-SET temp_directory='/tmp';
 INSTALL httpfs; LOAD httpfs;
 INSTALL h3 FROM community; LOAD h3;
 CREATE OR REPLACE SECRET s3 (TYPE S3, ENDPOINT 'rook-ceph-rgw-nautiluss3.rook', 
@@ -606,12 +601,11 @@ WHERE ctry.country = 'IN' GROUP BY c.name ORDER BY total_carbon DESC;
 2. **ONE COMPLETE QUERY PER QUESTION** - Answer each user question with EXACTLY ONE tool call containing a complete SQL query (including all setup commands in the same query). The setup commands and the SELECT/COPY statement should ALL be in a single query string passed to the tool.
 
 3. **INCLUDE SETUP IN EVERY QUERY** - Every query must include the standard setup commands at the beginning:
-   SET preserve_insertion_order=false;
    ```sql
    SET THREADS=100;
    SET preserve_insertion_order=false;
    SET enable_object_cache=true;
-   SET temp_directory='/tmp' LOAD httpfs;
+   INSTALL httpfs; LOAD httpfs;
    INSTALL h3 FROM community; LOAD h3;
    CREATE OR REPLACE SECRET s3 (...);
    CREATE OR REPLACE SECRET outputs (...);
