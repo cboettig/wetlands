@@ -393,6 +393,15 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         }
     }
 
+    getWelcomeMessage() {
+        return 'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
+            '* "Tell me about the datasets you access and how you work."\n' +
+            '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
+            '* "Show Ramsar sites to those meeting Criterion 9; explain the criterion"\n' +
+            '* "Color Ramsar sites by the number of criteria they meet"\n' +
+            '* "Rank the top 10 level-3 hydrobasins by wetland extent, carbon, and NCP, normalized. Explain methodology and show them on map."\n';
+    }
+
     initializeUI() {
         // Configure marked to use highlight.js
         if (window.marked && window.hljs) {
@@ -459,15 +468,7 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         });
 
         // Welcome message
-        this.addMessage(
-            'assistant',
-            'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
-            '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
-            '* "Show Ramsar sites to those meeting Criterion 9; explain the criterion"\n' +
-            '* "Color Ramsar sites by the number of criteria they meet"\n' +
-            '* "Rank the top 10 level-3 hydrobasins by wetland extent, carbon, and NCP. Explain methodology and show them on map."\n'
-
-        );
+        this.addMessage('assistant', this.getWelcomeMessage());
     }
 
     setupResizeHandle(container) {
@@ -524,15 +525,25 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         const messagesDiv = document.getElementById('chat-messages');
         messagesDiv.innerHTML = '';
 
+        // Reset map state if MapController is available
+        if (window.MapController) {
+            console.log('🗺️ Resetting map state...');
+
+            // Clear filters on all vector layers
+            ['wdpa', 'ramsar', 'hydrobasins'].forEach(layer => {
+                window.MapController.clearLayerFilter(layer);
+            });
+
+            // Reset paint properties on all vector layers
+            ['wdpa', 'ramsar', 'hydrobasins'].forEach(layer => {
+                window.MapController.resetLayerPaint(layer);
+            });
+
+            console.log('✓ Map state reset');
+        }
+
         // Show welcome message again
-        this.addMessage(
-            'assistant',
-            'Hi! I can help you explore global wetlands data and control the map. Try asking:\n\n' +
-            '* "Calculate vulnerable carbon stored in different wetlands of India?"\n' +
-            '* "Show state-owned protected areas colored by IUCN category"\n' +
-            '* "Compute carbon stored in each hydrobasin in Spain as a csv"\n' +
-            '* "Filter Ramsar sites to those meeting Criterion 1 and 2."'
-        );
+        this.addMessage('assistant', this.getWelcomeMessage());
 
         console.log('✓ Chat history cleared');
     }
