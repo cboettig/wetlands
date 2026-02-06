@@ -7,9 +7,9 @@
 // - Validates tool call arguments and LLM responses for empty content
 // - Provides user-friendly error messages for common failure scenarios
 
-// Import MCP SDK for proper SSE communication
+// Import MCP SDK for Streamable HTTP communication
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 class WetlandsChatbot {
     constructor(config) {
@@ -299,8 +299,8 @@ Example: "State-owned areas are <span style="background-color: #1f77b4; padding:
         try {
             console.log('🔌 Initializing MCP connection...');
 
-            // Create SSE transport
-            const transport = new SSEClientTransport(new URL(this.mcpServerUrl));
+            // Create Streamable HTTP transport (MCP protocol v2025-03-26)
+            const transport = new StreamableHTTPClientTransport(new URL(this.mcpServerUrl));
 
             // Create MCP client
             this.mcpClient = new Client({
