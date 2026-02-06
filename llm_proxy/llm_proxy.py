@@ -23,11 +23,9 @@ app = FastAPI(title="Multi-Provider LLM Proxy for Wetlands Chatbot")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://cboettig.github.io",
-        "https://boettiger-lab.github.io",
         "https://wetlands.nrp-nautilus.io",  # K8s deployment
         "https://nature.nrp-nautilus.io",  # K8s deployment
-        "http://localhost:8000",  # For local testing
+        "https://ca-lands.nrp-nautilus.io"  # K8s deployment
     ],
     allow_credentials=True,  # Required for Authorization header
     allow_methods=["GET", "POST", "OPTIONS"],
