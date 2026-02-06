@@ -39,7 +39,7 @@ spec:
       # MCP server (backend, not exposed directly)
       - name: mcp-server
         image: astral/uv:python3.12-bookworm-slim
-        command: ["uvx", "mcp-server-motherduck", "--port", "8001", "--host", "127.0.0.1", "--db-path", ":memory:", "--read-write", "--transport", "sse"]
+        command: ["uvx", "mcp-server-motherduck==0.4.0", "--port", "8001", "--host", "127.0.0.1", "--db-path", ":memory:", "--read-write", "--transport", "sse"]
         resources:
           requests:
             cpu: "4"
