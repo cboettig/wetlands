@@ -67,6 +67,7 @@ To see all queries to the chatbot:
 ```bash
 # Analyze logs from the past 7 days
 python llm_proxy/analyze_logs.py --days 7
+
 ```
 
 This automatically downloads logs from S3 and generates a usage report.
