@@ -22,11 +22,8 @@ app = FastAPI(title="Multi-Provider LLM Proxy for Wetlands Chatbot")
 # Enable CORS - allow requests from GitHub Pages and k8s deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://wetlands.nrp-nautilus.io",  # K8s deployment
-        "https://nature.nrp-nautilus.io",  # K8s deployment
-        "https://ca-lands.nrp-nautilus.io"  # K8s deployment
-    ],
+    allow_origins=[],
+    allow_origin_regex=r"https://.*\.nrp-nautilus\.io",
     allow_credentials=True,  # Required for Authorization header
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],  # Allow all headers to prevent preflight failures
